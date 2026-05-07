@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class StockInRequest extends Model
 {
@@ -66,5 +67,13 @@ class StockInRequest extends Model
     public function items(): HasMany
     {
         return $this->hasMany(StockInRequestItem::class);
+    }
+
+    /**
+     * Relasi pengajuan barang masuk dengan realisasi barang masuk.
+     */
+    public function stockIn(): HasOne
+    {
+        return $this->hasOne(StockIn::class);
     }
 }

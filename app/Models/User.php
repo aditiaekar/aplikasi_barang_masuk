@@ -61,4 +61,20 @@ class User extends Authenticatable
     {
         return $this->hasMany(StockInRequest::class, 'approved_by');
     }
+
+    /**
+     * Relasi user dengan realisasi barang masuk yang dicatat.
+     */
+    public function stockIns(): HasMany
+    {
+        return $this->hasMany(StockIn::class, 'received_by');
+    }
+
+    /**
+     * Relasi user dengan realisasi barang masuk yang disetujui.
+     */
+    public function approvedStockIns(): HasMany
+    {
+        return $this->hasMany(StockIn::class, 'approved_by');
+    }
 }

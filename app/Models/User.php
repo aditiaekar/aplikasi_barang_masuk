@@ -77,4 +77,12 @@ class User extends Authenticatable
     {
         return $this->hasMany(StockIn::class, 'approved_by');
     }
+
+    /**
+     * Relasi user dengan riwayat mutasi stok yang dibuat.
+     */
+    public function stockMutations(): HasMany
+    {
+        return $this->hasMany(StockMutation::class, 'created_by');
+    }
 }

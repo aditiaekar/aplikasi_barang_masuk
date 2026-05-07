@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -43,5 +44,21 @@ class User extends Authenticatable
     public function role(): BelongsTo
     {
         return $this->belongsTo(Role::class);
+    }
+
+    /**
+     * Relasi user dengan pengajuan barang masuk yang dibuat.
+     */
+    public function stockInRequests(): HasMany
+    {
+        return $this->hasMany(StockInRequest::class, 'requested_by');
+    }
+
+    /**
+     * Relasi user dengan pengajuan barang masuk yang disetujui atau ditolak.
+     */
+    public function approvedStockInRequests(): HasMany
+    {
+        return $this->hasMany(StockInRequest::class, 'approved_by');
     }
 }

@@ -18,4 +18,32 @@ Route::middleware('auth')->group(function () {
     })->name('dashboard');
 
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+    /*
+    |--------------------------------------------------------------------------
+    | Route khusus Super Admin
+    |--------------------------------------------------------------------------
+    */
+    Route::middleware('role:super_admin')
+        ->prefix('admin')
+        ->name('admin.')
+        ->group(function () {
+            Route::get('/users', function () {
+                return 'Halaman kelola pengguna hanya untuk Super Admin.';
+            })->name('users.index');
+        });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Route untuk Super Admin dan Admin Gudang
+    |--------------------------------------------------------------------------
+    */
+    Route::middleware('role:super_admin,admin_gudang')
+        ->prefix('warehouse')
+        ->name('warehouse.')
+        ->group(function () {
+            Route::get('/stock-in-requests', function () {
+                return 'Halaman pengajuan barang masuk untuk Super Admin dan Admin Gudang.';
+            })->name('stock-in-requests.index');
+        });
 });

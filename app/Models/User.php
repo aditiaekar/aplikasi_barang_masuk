@@ -85,4 +85,30 @@ class User extends Authenticatable
     {
         return $this->hasMany(StockMutation::class, 'created_by');
     }
+
+    /**
+     * Mengecek apakah user memiliki role tertentu.
+     */
+    public function hasRole(string|array $roles): bool
+    {
+        $roles = (array) $roles;
+
+        return $this->role && in_array($this->role->name, $roles, true);
+    }
+
+    /**
+     * Mengecek apakah user adalah Super Admin.
+     */
+    public function isSuperAdmin(): bool
+    {
+        return $this->hasRole('super_admin');
+    }
+
+    /**
+     * Mengecek apakah user adalah Admin Gudang.
+     */
+    public function isAdminGudang(): bool
+    {
+        return $this->hasRole('admin_gudang');
+    }
 }

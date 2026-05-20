@@ -318,6 +318,32 @@
                     <span>Dashboard</span>
                 </a>
 
+                <div class="menu-label">Master Data</div>
+
+                <a href="{{ route('admin.master-data.index', 'categories') }}"
+                    class="menu-item {{ request()->is('admin/master-data/categories*') ? 'active' : '' }}">
+                    <i class="bx bx-category"></i>
+                    <span>Kategori</span>
+                </a>
+
+                <a href="{{ route('admin.master-data.index', 'units') }}"
+                    class="menu-item {{ request()->is('admin/master-data/units*') ? 'active' : '' }}">
+                    <i class="bx bx-ruler"></i>
+                    <span>Satuan</span>
+                </a>
+
+                <a href="{{ route('admin.master-data.index', 'suppliers') }}"
+                    class="menu-item {{ request()->is('admin/master-data/suppliers*') ? 'active' : '' }}">
+                    <i class="bx bx-store"></i>
+                    <span>Supplier</span>
+                </a>
+
+                <a href="{{ route('admin.master-data.index', 'warehouses') }}"
+                    class="menu-item {{ request()->is('admin/master-data/warehouses*') ? 'active' : '' }}">
+                    <i class="bx bx-building-house"></i>
+                    <span>Gudang</span>
+                </a>
+
                 <div class="menu-label">Data Barang</div>
 
                 <a href="javascript:void(0)" class="menu-item">
@@ -399,14 +425,14 @@
         const sidebarBackdrop = document.getElementById('sidebarBackdrop');
 
         if (sidebarToggle) {
-            sidebarToggle.addEventListener('click', function () {
+            sidebarToggle.addEventListener('click', function() {
                 sidebar.classList.toggle('show');
                 sidebarBackdrop.classList.toggle('show');
             });
         }
 
         if (sidebarBackdrop) {
-            sidebarBackdrop.addEventListener('click', function () {
+            sidebarBackdrop.addEventListener('click', function() {
                 sidebar.classList.remove('show');
                 sidebarBackdrop.classList.remove('show');
             });

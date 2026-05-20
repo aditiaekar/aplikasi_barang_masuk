@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\MasterDataController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -49,9 +50,20 @@ Route::middleware('auth')->group(function () {
         });
 });
 
-Route::middleware(['auth', 'role:super_admin,admin_gudang'])
+Route::middleware('role:super_admin,admin_gudang')
     ->prefix('admin')
     ->name('admin.')
     ->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+        Route::prefix('master-data')
+            ->name('master-data.')
+            ->group(function () {
+                Route::get('/{type}', [MasterDataController::class, 'index'])->name('index');
+                Route::get('/{type}/create', [MasterDataController::class, 'create'])->name('create');
+                Route::post('/{type}', [MasterDataController::class, 'store'])->name('store');
+                Route::get('/{type}/{id}/edit', [MasterDataController::class, 'edit'])->name('edit');
+                Route::put('/{type}/{id}', [MasterDataController::class, 'update'])->name('update');
+                Route::delete('/{type}/{id}', [MasterDataController::class, 'destroy'])->name('destroy');
+            });
     });

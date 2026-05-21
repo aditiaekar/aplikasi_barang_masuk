@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\ItemController;
 use App\Http\Controllers\Admin\MasterDataController;
 use Illuminate\Support\Facades\Route;
 
@@ -55,6 +56,8 @@ Route::middleware('role:super_admin,admin_gudang')
     ->name('admin.')
     ->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+        Route::resource('items', ItemController::class);
 
         Route::prefix('master-data')
             ->name('master-data.')

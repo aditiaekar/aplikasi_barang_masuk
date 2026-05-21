@@ -3,32 +3,21 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ItemStock extends Model
 {
     protected $fillable = [
         'item_id',
         'warehouse_id',
-        'quantity',
+        'stock',
     ];
 
-    protected $casts = [
-        'quantity' => 'integer',
-    ];
-
-    /**
-     * Relasi stok ke barang.
-     */
-    public function item(): BelongsTo
+    public function item()
     {
         return $this->belongsTo(Item::class);
     }
 
-    /**
-     * Relasi stok ke gudang.
-     */
-    public function warehouse(): BelongsTo
+    public function warehouse()
     {
         return $this->belongsTo(Warehouse::class);
     }

@@ -346,7 +346,8 @@
 
                 <div class="menu-label">Data Barang</div>
 
-                <a href="javascript:void(0)" class="menu-item">
+                <a href="{{ route('admin.items.index') }}"
+                    class="menu-item {{ request()->routeIs('admin.items.*') ? 'active' : '' }}">
                     <i class="bx bx-box"></i>
                     <span>Data Barang</span>
                 </a>

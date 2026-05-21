@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\ItemController;
 use App\Http\Controllers\Admin\MasterDataController;
+use App\Http\Controllers\Admin\StockInRequestController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -58,6 +59,9 @@ Route::middleware('role:super_admin,admin_gudang')
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
         Route::resource('items', ItemController::class);
+
+        Route::resource('stock-in-requests', StockInRequestController::class)
+            ->except(['show']);
 
         Route::prefix('master-data')
             ->name('master-data.')

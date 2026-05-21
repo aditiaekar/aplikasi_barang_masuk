@@ -352,7 +352,8 @@
                     <span>Data Barang</span>
                 </a>
 
-                <a href="javascript:void(0)" class="menu-item">
+                <a href="{{ route('admin.stock-in-requests.index') }}"
+                    class="menu-item {{ request()->routeIs('admin.stock-in-requests.*') ? 'active' : '' }}">
                     <i class="bx bx-log-in-circle"></i>
                     <span>Barang Masuk</span>
                 </a>

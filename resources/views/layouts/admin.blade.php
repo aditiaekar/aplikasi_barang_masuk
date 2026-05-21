@@ -372,9 +372,16 @@
 
                 <div class="menu-label">Laporan</div>
 
-                <a href="javascript:void(0)" class="menu-item">
-                    <i class="bx bx-file"></i>
-                    <span>Laporan</span>
+                <a href="{{ route('admin.reports.stocks.export') }}"
+                    class="menu-item">
+                    <i class="bx bx-package"></i>
+                    <span>Laporan Stok Barang</span>
+                </a>
+
+                <a href="{{ route('admin.reports.stock-mutations.export') }}"
+                    class="menu-item">
+                    <i class="bx bx-transfer-alt"></i>
+                    <span>Laporan Mutasi Stok</span>
                 </a>
             </div>
         </aside>

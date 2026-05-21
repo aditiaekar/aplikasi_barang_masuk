@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\ItemController;
 use App\Http\Controllers\Admin\MasterDataController;
+use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\StockController;
 use App\Http\Controllers\Admin\StockInRequestController;
 use Illuminate\Support\Facades\Route;
@@ -78,6 +79,12 @@ Route::middleware(['auth', 'role:super_admin,admin_gudang'])
         // Riwayat mutasi stok
         Route::get('/stock-mutations', [StockController::class, 'mutations'])
             ->name('stock-mutations.index');
+
+        Route::get('/reports/stocks/export', [ReportController::class, 'exportStocks'])
+            ->name('reports.stocks.export');
+
+        Route::get('/reports/stock-mutations/export', [ReportController::class, 'exportStockMutations'])
+            ->name('reports.stock-mutations.export');
 
         Route::prefix('master-data')
             ->name('master-data.')

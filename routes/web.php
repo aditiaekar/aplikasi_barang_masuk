@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\ItemController;
 use App\Http\Controllers\Admin\MasterDataController;
+use App\Http\Controllers\Admin\StockController;
 use App\Http\Controllers\Admin\StockInRequestController;
 use Illuminate\Support\Facades\Route;
 
@@ -54,7 +55,7 @@ Route::middleware('auth')->group(function () {
         });
 });
 
-Route::middleware('role:super_admin,admin_gudang')
+Route::middleware(['auth', 'role:super_admin,admin_gudang'])
     ->prefix('admin')
     ->name('admin.')
     ->group(function () {
@@ -69,6 +70,14 @@ Route::middleware('role:super_admin,admin_gudang')
 
         Route::post('/stock-in-requests/{stockInRequest}/reject', [StockInRequestController::class, 'reject'])
             ->name('stock-in-requests.reject');
+
+        // Stok barang
+        Route::get('/stocks', [StockController::class, 'index'])
+            ->name('stocks.index');
+
+        // Riwayat mutasi stok
+        Route::get('/stock-mutations', [StockController::class, 'mutations'])
+            ->name('stock-mutations.index');
 
         Route::prefix('master-data')
             ->name('master-data.')

@@ -358,9 +358,16 @@
                     <span>Barang Masuk</span>
                 </a>
 
-                <a href="javascript:void(0)" class="menu-item">
-                    <i class="bx bx-store"></i>
-                    <span>Supplier</span>
+                <a href="{{ route('admin.stocks.index') }}"
+                    class="menu-item {{ request()->routeIs('admin.stocks.*') ? 'active' : '' }}">
+                    <i class="bx bx-package"></i>
+                    <span>Stok Barang</span>
+                </a>
+
+                <a href="{{ route('admin.stock-mutations.index') }}"
+                    class="menu-item {{ request()->routeIs('admin.stock-mutations.*') ? 'active' : '' }}">
+                    <i class="bx bx-transfer-alt"></i>
+                    <span>Mutasi Stok</span>
                 </a>
 
                 <div class="menu-label">Laporan</div>

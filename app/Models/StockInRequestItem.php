@@ -6,7 +6,13 @@ use Illuminate\Database\Eloquent\Model;
 
 class StockInRequestItem extends Model
 {
-    protected $guarded = [];
+    protected $fillable = [
+        'stock_in_request_id',
+        'item_id',
+        'unit_id',
+        'quantity',
+        'note',
+    ];
 
     public function stockInRequest()
     {
@@ -16,5 +22,10 @@ class StockInRequestItem extends Model
     public function item()
     {
         return $this->belongsTo(Item::class);
+    }
+
+    public function unit()
+    {
+        return $this->belongsTo(Unit::class);
     }
 }

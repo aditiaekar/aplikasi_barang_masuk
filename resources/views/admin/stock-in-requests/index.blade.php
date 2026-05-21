@@ -185,22 +185,22 @@
                 <div class="col-lg-8 col-md-8">
                     <label class="form-label fw-semibold">Pencarian</label>
                     <input type="text"
-                           name="search"
-                           value="{{ request('search') }}"
-                           class="form-control"
-                           placeholder="Cari nomor transaksi, supplier, gudang, atau catatan">
+                        name="search"
+                        value="{{ request('search') }}"
+                        class="form-control"
+                        placeholder="Cari nomor transaksi, supplier, gudang, atau catatan">
                 </div>
 
                 @if ($statusColumn)
-                    <div class="col-lg-2 col-md-4">
-                        <label class="form-label fw-semibold">Status</label>
-                        <select name="status" class="form-select">
-                            <option value="">Semua</option>
-                            <option value="pending" {{ request('status') === 'pending' ? 'selected' : '' }}>Pending</option>
-                            <option value="approved" {{ request('status') === 'approved' ? 'selected' : '' }}>Approved</option>
-                            <option value="rejected" {{ request('status') === 'rejected' ? 'selected' : '' }}>Rejected</option>
-                        </select>
-                    </div>
+                <div class="col-lg-2 col-md-4">
+                    <label class="form-label fw-semibold">Status</label>
+                    <select name="status" class="form-select">
+                        <option value="">Semua</option>
+                        <option value="pending" {{ request('status') === 'pending' ? 'selected' : '' }}>Pending</option>
+                        <option value="approved" {{ request('status') === 'approved' ? 'selected' : '' }}>Approved</option>
+                        <option value="rejected" {{ request('status') === 'rejected' ? 'selected' : '' }}>Rejected</option>
+                    </select>
+                </div>
                 @endif
 
                 <div class="col-lg-2 col-md-4 d-grid">
@@ -214,15 +214,15 @@
     </div>
 
     @if (session('success'))
-        <div class="alert alert-success m-3 rounded-4">
-            {{ session('success') }}
-        </div>
+    <div class="alert alert-success m-3 rounded-4">
+        {{ session('success') }}
+    </div>
     @endif
 
     @if (session('error'))
-        <div class="alert alert-danger m-3 rounded-4">
-            {{ session('error') }}
-        </div>
+    <div class="alert alert-danger m-3 rounded-4">
+        {{ session('error') }}
+    </div>
     @endif
 
     <div class="table-responsive">
@@ -237,7 +237,7 @@
                     <th>Total Item</th>
                     <th>Total Qty</th>
                     @if ($statusColumn)
-                        <th>Status</th>
+                    <th>Status</th>
                     @endif
                     <th class="text-end" style="width: 120px;">Aksi</th>
                 </tr>
@@ -245,75 +245,105 @@
 
             <tbody>
                 @forelse ($stockInRequests as $requestItem)
-                    @php
-                        $totalQty = $requestItem->items->sum($quantityColumn);
-                        $status = $statusColumn ? $requestItem->{$statusColumn} : 'pending';
-                    @endphp
+                @php
+                $totalQty = $requestItem->items->sum($quantityColumn);
+                $status = $statusColumn ? $requestItem->{$statusColumn} : 'pending';
+                @endphp
 
-                    <tr>
-                        <td>{{ $stockInRequests->firstItem() + $loop->index }}</td>
-                        <td>
-                            <span class="transaction-code">
-                                {{ $numberColumn ? $requestItem->{$numberColumn} : 'BM-' . str_pad($requestItem->id, 3, '0', STR_PAD_LEFT) }}
-                            </span>
-                        </td>
-                        <td>
-                            {{ $dateColumn && $requestItem->{$dateColumn}
+                <tr>
+                    <td>{{ $stockInRequests->firstItem() + $loop->index }}</td>
+                    <td>
+                        <span class="transaction-code">
+                            {{ $numberColumn ? $requestItem->{$numberColumn} : 'BM-' . str_pad($requestItem->id, 3, '0', STR_PAD_LEFT) }}
+                        </span>
+                    </td>
+                    <td>
+                        {{ $dateColumn && $requestItem->{$dateColumn}
                                 ? \Carbon\Carbon::parse($requestItem->{$dateColumn})->format('d/m/Y')
                                 : '-' }}
-                        </td>
-                        <td>{{ $requestItem->supplier->name ?? '-' }}</td>
-                        <td>{{ $requestItem->warehouse->name ?? '-' }}</td>
-                        <td>{{ $requestItem->items->count() }}</td>
-                        <td><strong>{{ $totalQty }}</strong></td>
+                    </td>
+                    <td>{{ $requestItem->supplier->name ?? '-' }}</td>
+                    <td>{{ $requestItem->warehouse->name ?? '-' }}</td>
+                    <td>{{ $requestItem->items->count() }}</td>
+                    <td><strong>{{ $totalQty }}</strong></td>
 
-                        @if ($statusColumn)
-                            <td>
-                                <span class="badge-status badge-{{ $status }}">
-                                    {{ ucfirst($status) }}
-                                </span>
-                            </td>
+                    @if ($statusColumn)
+                    <td>
+                        <span class="badge-status badge-{{ $status }}">
+                            {{ ucfirst($status) }}
+                        </span>
+                    </td>
+                    @endif
+
+                    <td class="text-end">
+                        <a href="{{ route('admin.stock-in-requests.show', $requestItem->id) }}"
+                            class="action-btn"
+                            title="Detail">
+                            <i class="bx bx-show"></i>
+                        </a>
+
+                        @if ($status === 'pending')
+                        <form action="{{ route('admin.stock-in-requests.approve', $requestItem->id) }}"
+                            method="POST"
+                            class="d-inline"
+                            onsubmit="return confirm('Yakin ingin menyetujui transaksi barang masuk ini? Stok akan otomatis bertambah.')">
+                            @csrf
+
+                            <button type="submit" class="action-btn" title="Approve">
+                                <i class="bx bx-check"></i>
+                            </button>
+                        </form>
+
+                        <form action="{{ route('admin.stock-in-requests.reject', $requestItem->id) }}"
+                            method="POST"
+                            class="d-inline"
+                            onsubmit="return confirm('Yakin ingin menolak transaksi barang masuk ini?')">
+                            @csrf
+
+                            <button type="submit" class="action-btn" title="Reject">
+                                <i class="bx bx-x"></i>
+                            </button>
+                        </form>
+
+                        <a href="{{ route('admin.stock-in-requests.edit', $requestItem->id) }}"
+                            class="action-btn"
+                            title="Edit">
+                            <i class="bx bx-edit"></i>
+                        </a>
+
+                        <form action="{{ route('admin.stock-in-requests.destroy', $requestItem->id) }}"
+                            method="POST"
+                            class="d-inline"
+                            onsubmit="return confirm('Yakin ingin menghapus transaksi barang masuk ini?')">
+                            @csrf
+                            @method('DELETE')
+
+                            <button type="submit" class="action-btn" title="Hapus">
+                                <i class="bx bx-trash"></i>
+                            </button>
+                        </form>
                         @endif
-
-                        <td class="text-end">
-                            <a href="{{ route('admin.stock-in-requests.edit', $requestItem->id) }}"
-                               class="action-btn"
-                               title="Edit">
-                                <i class="bx bx-edit"></i>
-                            </a>
-
-                            <form action="{{ route('admin.stock-in-requests.destroy', $requestItem->id) }}"
-                                  method="POST"
-                                  class="d-inline"
-                                  onsubmit="return confirm('Yakin ingin menghapus transaksi barang masuk ini?')">
-                                @csrf
-                                @method('DELETE')
-
-                                <button type="submit" class="action-btn" title="Hapus">
-                                    <i class="bx bx-trash"></i>
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
+                    </td>
+                </tr>
                 @empty
-                    <tr>
-                        <td colspan="9">
-                            <div class="empty-state">
-                                <i class="bx bx-log-in-circle"></i>
-                                <h6 class="fw-bold mb-1">Belum Ada Transaksi</h6>
-                                <div>Silakan tambahkan transaksi barang masuk terlebih dahulu.</div>
-                            </div>
-                        </td>
-                    </tr>
+                <tr>
+                    <td colspan="9">
+                        <div class="empty-state">
+                            <i class="bx bx-log-in-circle"></i>
+                            <h6 class="fw-bold mb-1">Belum Ada Transaksi</h6>
+                            <div>Silakan tambahkan transaksi barang masuk terlebih dahulu.</div>
+                        </div>
+                    </td>
+                </tr>
                 @endforelse
             </tbody>
         </table>
     </div>
 
     @if ($stockInRequests->hasPages())
-        <div class="p-3">
-            {{ $stockInRequests->links() }}
-        </div>
+    <div class="p-3">
+        {{ $stockInRequests->links() }}
+    </div>
     @endif
 </div>
 @endsection

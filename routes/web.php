@@ -23,6 +23,8 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
+
+
     /*
     |--------------------------------------------------------------------------
     | Route khusus Super Admin
@@ -60,8 +62,13 @@ Route::middleware('role:super_admin,admin_gudang')
 
         Route::resource('items', ItemController::class);
 
-        Route::resource('stock-in-requests', StockInRequestController::class)
-            ->except(['show']);
+        Route::resource('stock-in-requests', StockInRequestController::class);
+
+        Route::post('/stock-in-requests/{stockInRequest}/approve', [StockInRequestController::class, 'approve'])
+            ->name('stock-in-requests.approve');
+
+        Route::post('/stock-in-requests/{stockInRequest}/reject', [StockInRequestController::class, 'reject'])
+            ->name('stock-in-requests.reject');
 
         Route::prefix('master-data')
             ->name('master-data.')

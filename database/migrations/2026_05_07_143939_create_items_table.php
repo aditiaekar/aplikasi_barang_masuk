@@ -27,6 +27,7 @@ return new class extends Migration
             $table->string('barcode')->unique()->nullable();
             $table->unsignedInteger('minimum_stock')->default(0);
             $table->string('image')->nullable();
+            $table->decimal('price', 15, 2)->default(0);
             $table->text('description')->nullable();
             $table->boolean('is_active')->default(true);
 

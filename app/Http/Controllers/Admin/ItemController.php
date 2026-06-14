@@ -57,8 +57,8 @@ class ItemController extends Controller
             ->with(['category', 'unit', 'stocks.warehouse'])
             ->when($request->search, function ($query, $search) {
                 $query->where(function ($query) use ($search) {
-                    if ($this->hasItemColumn('code')) {
-                        $query->orWhere('code', 'like', "%{$search}%");
+                    if ($this->hasItemColumn('item_code')) {
+                        $query->orWhere('item_code', 'like', "%{$search}%");
                     }
 
                     if ($this->hasItemColumn('barcode')) {
@@ -119,8 +119,8 @@ class ItemController extends Controller
 
         $payload = $this->itemPayload($validated);
 
-        if ($request->hasFile('photo') && $this->hasItemColumn('photo')) {
-            $payload['photo'] = $request->file('photo')->store('items', 'public');
+        if ($request->hasFile('image') && $this->hasItemColumn('image')) {
+            $payload['image'] = $request->file('image')->store('items', 'public');
         }
 
         $item = new Item();
@@ -168,12 +168,12 @@ class ItemController extends Controller
 
         $payload = $this->itemPayload($validated);
 
-        if ($request->hasFile('photo') && $this->hasItemColumn('photo')) {
-            if ($item->photo && Storage::disk('public')->exists($item->photo)) {
-                Storage::disk('public')->delete($item->photo);
+        if ($request->hasFile('image') && $this->hasItemColumn('image')) {
+            if ($item->image && Storage::disk('public')->exists($item->image)) {
+                Storage::disk('public')->delete($item->image);
             }
 
-            $payload['photo'] = $request->file('photo')->store('items', 'public');
+            $payload['image'] = $request->file('image')->store('items', 'public');
         }
 
         $item->forceFill($payload);
@@ -189,8 +189,8 @@ class ItemController extends Controller
     public function destroy(Item $item)
     {
         try {
-            if ($item->photo && Storage::disk('public')->exists($item->photo)) {
-                Storage::disk('public')->delete($item->photo);
+            if ($item->image && Storage::disk('public')->exists($item->image)) {
+                Storage::disk('public')->delete($item->image);
             }
 
             $item->delete();
@@ -217,14 +217,14 @@ class ItemController extends Controller
             $rules['unit_id'] = ['nullable', 'exists:units,id'];
         }
 
-        if ($this->hasItemColumn('code')) {
-            $uniqueCode = Rule::unique('items', 'code');
+        if ($this->hasItemColumn('item_code')) {
+            $uniqueCode = Rule::unique('items', 'item_code');
 
             if ($ignoreId) {
                 $uniqueCode->ignore($ignoreId);
             }
 
-            $rules['code'] = ['required', 'string', 'max:100', $uniqueCode];
+            $rules['item_code'] = ['required', 'string', 'max:100', $uniqueCode];
         }
 
         if ($this->hasItemColumn('barcode')) {
@@ -245,8 +245,12 @@ class ItemController extends Controller
             $rules['minimum_stock'] = ['required', 'integer', 'min:0'];
         }
 
-        if ($this->hasItemColumn('photo')) {
-            $rules['photo'] = ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'];
+        if ($this->hasItemColumn('price')) {
+            $rules['price'] = ['required', 'numeric', 'min:0'];
+        }
+
+        if ($this->hasItemColumn('image')) {
+            $rules['image'] = ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'];
         }
 
         if ($this->hasItemColumn('description')) {
@@ -270,7 +274,7 @@ class ItemController extends Controller
         $payload = [];
 
         foreach ($this->itemColumns() as $column) {
-            if (array_key_exists($column, $validated) && !in_array($column, ['id', 'created_at', 'updated_at', 'photo'])) {
+            if (array_key_exists($column, $validated) && !in_array($column, ['id', 'created_at', 'updated_at', 'image'])) {
                 $payload[$column] = $validated[$column];
             }
         }

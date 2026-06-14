@@ -181,6 +181,7 @@
     }
 
     @media (max-width: 575.98px) {
+
         .item-card-header,
         .filter-box {
             padding: 1rem;
@@ -213,49 +214,49 @@
                 <div class="col-lg-4 col-md-6">
                     <label class="form-label fw-semibold">Pencarian</label>
                     <input type="text"
-                           name="search"
-                           value="{{ request('search') }}"
-                           class="form-control"
-                           placeholder="Cari kode, barcode, atau nama barang">
+                        name="search"
+                        value="{{ request('search') }}"
+                        class="form-control"
+                        placeholder="Cari kode, barcode, atau nama barang">
                 </div>
 
                 @if (in_array('category_id', $columns))
-                    <div class="col-lg-3 col-md-6">
-                        <label class="form-label fw-semibold">Kategori</label>
-                        <select name="category_id" class="form-select">
-                            <option value="">Semua Kategori</option>
-                            @foreach ($categories as $category)
-                                <option value="{{ $category->id }}" {{ request('category_id') == $category->id ? 'selected' : '' }}>
-                                    {{ $category->name }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
+                <div class="col-lg-3 col-md-6">
+                    <label class="form-label fw-semibold">Kategori</label>
+                    <select name="category_id" class="form-select">
+                        <option value="">Semua Kategori</option>
+                        @foreach ($categories as $category)
+                        <option value="{{ $category->id }}" {{ request('category_id') == $category->id ? 'selected' : '' }}>
+                            {{ $category->name }}
+                        </option>
+                        @endforeach
+                    </select>
+                </div>
                 @endif
 
                 @if (in_array('unit_id', $columns))
-                    <div class="col-lg-3 col-md-6">
-                        <label class="form-label fw-semibold">Satuan</label>
-                        <select name="unit_id" class="form-select">
-                            <option value="">Semua Satuan</option>
-                            @foreach ($units as $unit)
-                                <option value="{{ $unit->id }}" {{ request('unit_id') == $unit->id ? 'selected' : '' }}>
-                                    {{ $unit->name }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
+                <div class="col-lg-3 col-md-6">
+                    <label class="form-label fw-semibold">Satuan</label>
+                    <select name="unit_id" class="form-select">
+                        <option value="">Semua Satuan</option>
+                        @foreach ($units as $unit)
+                        <option value="{{ $unit->id }}" {{ request('unit_id') == $unit->id ? 'selected' : '' }}>
+                            {{ $unit->name }}
+                        </option>
+                        @endforeach
+                    </select>
+                </div>
                 @endif
 
                 @if (in_array('is_active', $columns))
-                    <div class="col-lg-2 col-md-6">
-                        <label class="form-label fw-semibold">Status</label>
-                        <select name="status" class="form-select">
-                            <option value="">Semua</option>
-                            <option value="1" {{ request('status') === '1' ? 'selected' : '' }}>Aktif</option>
-                            <option value="0" {{ request('status') === '0' ? 'selected' : '' }}>Nonaktif</option>
-                        </select>
-                    </div>
+                <div class="col-lg-2 col-md-6">
+                    <label class="form-label fw-semibold">Status</label>
+                    <select name="status" class="form-select">
+                        <option value="">Semua</option>
+                        <option value="1" {{ request('status') === '1' ? 'selected' : '' }}>Aktif</option>
+                        <option value="0" {{ request('status') === '0' ? 'selected' : '' }}>Nonaktif</option>
+                    </select>
+                </div>
                 @endif
 
                 <div class="col-lg-2 col-md-6 d-grid">
@@ -269,15 +270,15 @@
     </div>
 
     @if (session('success'))
-        <div class="alert alert-success m-3 rounded-4">
-            {{ session('success') }}
-        </div>
+    <div class="alert alert-success m-3 rounded-4">
+        {{ session('success') }}
+    </div>
     @endif
 
     @if (session('error'))
-        <div class="alert alert-danger m-3 rounded-4">
-            {{ session('error') }}
-        </div>
+    <div class="alert alert-danger m-3 rounded-4">
+        {{ session('error') }}
+    </div>
     @endif
 
     <div class="table-responsive">
@@ -286,36 +287,40 @@
                 <tr>
                     <th style="width: 70px;">No</th>
 
-                    @if (in_array('photo', $columns))
-                        <th>Foto</th>
+                    @if (in_array('image', $columns))
+                    <th>Gambar</th>
                     @endif
 
-                    @if (in_array('code', $columns))
-                        <th>Kode</th>
+                    @if (in_array('item_code', $columns))
+                    <th>Kode</th>
                     @endif
 
                     <th>Nama Barang</th>
 
                     @if (in_array('barcode', $columns))
-                        <th>Barcode</th>
+                    <th>Barcode</th>
                     @endif
 
                     @if (in_array('category_id', $columns))
-                        <th>Kategori</th>
+                    <th>Kategori</th>
                     @endif
 
                     @if (in_array('unit_id', $columns))
-                        <th>Satuan</th>
+                    <th>Satuan</th>
                     @endif
 
                     @if (in_array('minimum_stock', $columns))
-                        <th>Stok Minimum</th>
+                    <th>Stok Minimum</th>
+                    @endif
+
+                    @if (in_array('price', $columns))
+                    <th>Harga</th>
                     @endif
 
                     <th>Total Stok</th>
 
                     @if (in_array('is_active', $columns))
-                        <th>Status</th>
+                    <th>Status</th>
                     @endif
 
                     <th class="text-end" style="width: 120px;">Aksi</th>
@@ -324,108 +329,112 @@
 
             <tbody>
                 @forelse ($items as $item)
-                    @php
-                        $totalStock = $stockColumn ? $item->stocks->sum($stockColumn) : 0;
-                    @endphp
+                @php
+                $totalStock = $stockColumn ? $item->stocks->sum($stockColumn) : 0;
+                @endphp
 
-                    <tr>
-                        <td>{{ $items->firstItem() + $loop->index }}</td>
+                <tr>
+                    <td>{{ $items->firstItem() + $loop->index }}</td>
 
-                        @if (in_array('photo', $columns))
-                            <td>
-                                @if ($item->photo)
-                                    <img src="{{ asset('storage/' . $item->photo) }}" class="item-photo" alt="Foto Barang">
-                                @else
-                                    <span class="item-photo-placeholder">
-                                        <i class="bx bx-package"></i>
-                                    </span>
-                                @endif
-                            </td>
+                    @if (in_array('image', $columns))
+                    <td>
+                        @if ($item->image)
+                        <img src="{{ asset('storage/' . $item->image) }}" class="item-photo" alt="Gambar Barang">
+                        @else
+                        <span class="item-photo-placeholder">
+                            <i class="bx bx-package"></i>
+                        </span>
                         @endif
+                    </td>
+                    @endif
 
-                        @if (in_array('code', $columns))
-                            <td>
-                                <span class="item-code">{{ $item->code }}</span>
-                            </td>
+                    @if (in_array('item_code', $columns))
+                    <td>
+                        <span class="item-code">{{ $item->item_code }}</span>
+                    </td>
+                    @endif
+
+                    <td>
+                        <div class="fw-bold">{{ $item->name }}</div>
+
+                        @if (in_array('description', $columns) && $item->description)
+                        <small class="text-muted">
+                            {{ \Illuminate\Support\Str::limit($item->description, 60) }}
+                        </small>
                         @endif
+                    </td>
 
-                        <td>
-                            <div class="fw-bold">{{ $item->name }}</div>
+                    @if (in_array('barcode', $columns))
+                    <td>{{ $item->barcode ?? '-' }}</td>
+                    @endif
 
-                            @if (in_array('description', $columns) && $item->description)
-                                <small class="text-muted">
-                                    {{ \Illuminate\Support\Str::limit($item->description, 60) }}
-                                </small>
-                            @endif
-                        </td>
+                    @if (in_array('category_id', $columns))
+                    <td>{{ $item->category->name ?? '-' }}</td>
+                    @endif
 
-                        @if (in_array('barcode', $columns))
-                            <td>{{ $item->barcode ?? '-' }}</td>
+                    @if (in_array('unit_id', $columns))
+                    <td>{{ $item->unit->name ?? '-' }}</td>
+                    @endif
+
+                    @if (in_array('minimum_stock', $columns))
+                    <td>{{ $item->minimum_stock }}</td>
+                    @endif
+
+                    @if (in_array('price', $columns))
+                    <td>Rp {{ number_format($item->price ?? 0, 0, ',', '.') }}</td>
+                    @endif
+
+                    <td>
+                        <strong>{{ $totalStock }}</strong>
+                    </td>
+
+                    @if (in_array('is_active', $columns))
+                    <td>
+                        @if ($item->is_active)
+                        <span class="badge-active">Aktif</span>
+                        @else
+                        <span class="badge-inactive">Nonaktif</span>
                         @endif
+                    </td>
+                    @endif
 
-                        @if (in_array('category_id', $columns))
-                            <td>{{ $item->category->name ?? '-' }}</td>
-                        @endif
+                    <td class="text-end">
+                        <a href="{{ route('admin.items.edit', $item->id) }}" class="action-btn" title="Edit">
+                            <i class="bx bx-edit"></i>
+                        </a>
 
-                        @if (in_array('unit_id', $columns))
-                            <td>{{ $item->unit->name ?? '-' }}</td>
-                        @endif
+                        <form action="{{ route('admin.items.destroy', $item->id) }}"
+                            method="POST"
+                            class="d-inline"
+                            onsubmit="return confirm('Yakin ingin menghapus data barang ini?')">
+                            @csrf
+                            @method('DELETE')
 
-                        @if (in_array('minimum_stock', $columns))
-                            <td>{{ $item->minimum_stock }}</td>
-                        @endif
-
-                        <td>
-                            <strong>{{ $totalStock }}</strong>
-                        </td>
-
-                        @if (in_array('is_active', $columns))
-                            <td>
-                                @if ($item->is_active)
-                                    <span class="badge-active">Aktif</span>
-                                @else
-                                    <span class="badge-inactive">Nonaktif</span>
-                                @endif
-                            </td>
-                        @endif
-
-                        <td class="text-end">
-                            <a href="{{ route('admin.items.edit', $item->id) }}" class="action-btn" title="Edit">
-                                <i class="bx bx-edit"></i>
-                            </a>
-
-                            <form action="{{ route('admin.items.destroy', $item->id) }}"
-                                  method="POST"
-                                  class="d-inline"
-                                  onsubmit="return confirm('Yakin ingin menghapus data barang ini?')">
-                                @csrf
-                                @method('DELETE')
-
-                                <button type="submit" class="action-btn" title="Hapus">
-                                    <i class="bx bx-trash"></i>
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
+                            <button type="submit" class="action-btn" title="Hapus">
+                                <i class="bx bx-trash"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
                 @empty
-                    <tr>
-                        <td colspan="12">
-                            <div class="empty-state">
-                                <i class="bx bx-package"></i>
-                                <h6 class="fw-bold mb-1">Belum Ada Data Barang</h6>
-                                <div>Silakan tambahkan data barang terlebih dahulu.</div>
-                            </div>
-                        </td>
-                    </tr>
+                <tr>
+                    <td colspan="12">
+                        <div class="empty-state">
+                            <i class="bx bx-package"></i>
+                            <h6 class="fw-bold mb-1">Belum Ada Data Barang</h6>
+                            <div>Silakan tambahkan data barang terlebih dahulu.</div>
+                        </div>
+                    </td>
+                </tr>
                 @endforelse
             </tbody>
         </table>
     </div>
 
     @if ($items->hasPages())
-        <div class="p-3">
-            {{ $items->links() }}
-        </div>
+    <div class="p-3">
+        {{ $items->links() }}
+    </div>
     @endif
 </div>
 @endsection

@@ -14,7 +14,7 @@
     </div>
 
     <div class="form-card-body">
-        <form action="{{ route('admin.master-data.store', $type) }}" method="POST">
+        <form action="{{ $storeRoute ?? route('admin.master-data.store', $type) }}" method="POST">
             @csrf
 
             @include('admin.master-data.partials.form-fields', [
@@ -23,7 +23,7 @@
             ])
 
             <div class="d-flex justify-content-end gap-2 mt-4">
-                <a href="{{ route('admin.master-data.index', $type) }}" class="btn btn-light rounded-4 px-4">
+                <a href="{{ $indexRoute ?? route('admin.master-data.index', $type) }}" class="btn btn-light rounded-4 px-4">
                     Kembali
                 </a>
 

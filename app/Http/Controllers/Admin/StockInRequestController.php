@@ -14,9 +14,169 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
+use Yajra\DataTables\Facades\DataTables;
+
+use App\Repositories\ItemRepository;
+use App\Repositories\WarehouseRepository;
+use App\Repositories\SupplierRepository;
+use App\Service\StockInRequestService;
 
 class StockInRequestController extends Controller
 {
+    protected $itemRepo;
+    protected $supplierRepo;
+    protected $warehouseRepo;
+    protected $stockInRequestService;
+
+    public function __construct(
+        ItemRepository $itemRepo,
+        SupplierRepository $supplierRepo,
+        WarehouseRepository $warehouseRepo,
+        StockInRequestService $stockInRequestService
+    ) {
+        $this->itemRepo = $itemRepo;
+        $this->supplierRepo = $supplierRepo;
+        $this->warehouseRepo = $warehouseRepo;
+        $this->stockInRequestService = $stockInRequestService;
+    }
+
+    public function data(Request $request)
+    {
+        $query = StockInRequest::query()
+            ->with(['supplier', 'warehouse', 'items.item'])
+            ->withSum('items as total_qty', 'quantity');
+
+        if ($request->filled('keyword')) {
+            $keyword = trim($request->keyword);
+
+            $query->where(function ($q) use ($keyword) {
+                $q->where('request_number', 'like', "%{$keyword}%")
+                    ->orWhereDate('request_date', "$keyword")
+                    ->orWhereHas('supplier', function ($supplier) use ($keyword) {
+                        $supplier->where('name', 'like', "%{$keyword}%");
+                    })
+                    ->orWhereHas('warehouse', function ($warehouse) use ($keyword) {
+                        $warehouse->where('name', 'like', "%{$keyword}%");
+                    });
+            });
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        return DataTables::eloquent($query)
+            ->addIndexColumn()
+            ->editColumn('request_number', function ($row) {
+                return "<span class='transaction-code'> " . $row->request_number . " </span>";
+            })
+            ->addColumn('total_item', function ($row) {
+                return $row->items->count();
+            })
+            ->addColumn('total_qty', function ($row) {
+                return $row->items->sum($row->total_qty ?? 0);
+            })
+            ->addColumn('status', function ($row) {
+                return '<span class="badge-status badge-' . e($row->status) . '">' . e(ucfirst($row->status)) . '</span>';
+            })
+            ->addColumn('action', function ($row) {
+                $showUrl = route('admin.stock-in-requests.show', $row->id);
+
+                $action = '
+                <a href="' . $showUrl . '"
+                   class="action-btn"
+                   title="Detail">
+                    <i class="bx bx-show"></i>
+                </a>
+            ';
+
+                if ($row->status === 'pending') {
+                    $approveUrl = route('admin.stock-in-requests.approve', $row->id);
+                    $rejectUrl = route('admin.stock-in-requests.reject', $row->id);
+                    $editUrl = route('admin.stock-in-requests.edit', $row->id);
+                    $deleteUrl = route('admin.stock-in-requests.destroy', $row->id);
+
+                    $csrf = csrf_field();
+                    $methodDelete = method_field('DELETE');
+
+                    $action .= '
+                    <form action="' . $approveUrl . '"
+                          method="POST"
+                          class="d-inline"
+                          onsubmit="return confirm(\'Yakin ingin menyetujui transaksi barang masuk ini? Stok akan otomatis bertambah.\')">
+                        ' . $csrf . '
+
+                        <button type="submit" class="action-btn" title="Approve">
+                            <i class="bx bx-check"></i>
+                        </button>
+                    </form>
+
+                    <form action="' . $rejectUrl . '"
+                          method="POST"
+                          class="d-inline"
+                          onsubmit="return confirm(\'Yakin ingin menolak transaksi barang masuk ini?\')">
+                        ' . $csrf . '
+
+                        <button type="submit" class="action-btn" title="Reject">
+                            <i class="bx bx-x"></i>
+                        </button>
+                    </form>
+
+                    <a href="' . $editUrl . '"
+                       class="action-btn"
+                       title="Edit">
+                        <i class="bx bx-edit"></i>
+                    </a>
+
+                    <form action="' . $deleteUrl . '"
+                          method="POST"
+                          class="d-inline"
+                          onsubmit="return confirm(\'Yakin ingin menghapus transaksi barang masuk ini?\')">
+                        ' . $csrf . '
+                        ' . $methodDelete . '
+
+                        <button type="submit" class="action-btn" title="Hapus">
+                            <i class="bx bx-trash"></i>
+                        </button>
+                    </form>
+                ';
+                }
+
+                return '<div class="d-flex align-items-center gap-1">' . $action . '</div>';
+            })
+
+            ->rawColumns(['request_number', 'status', 'action'])
+
+            ->make(true);
+    }
+
+    public function itemData(Request $request)
+    {
+        $query = Item::query()
+            ->with([
+                'category:id,name',
+                'unit:id,name',
+            ])
+            ->where('is_active', true)
+            ->select([
+                'id',
+                'item_code',
+                'name',
+                'category_id',
+                'unit_id',
+            ]);
+
+        return DataTables::eloquent($query)
+            ->addIndexColumn()
+            ->addColumn('category_name', function (Item $item) {
+                return $item->category?->name ?? '-';
+            })
+            ->addColumn('unit_name', function (Item $item) {
+                return $item->unit?->name ?? '-';
+            })
+            ->make(true);
+    }
+
     private string $requestTable = 'stock_in_requests';
     private string $requestItemTable = 'stock_in_request_items';
     private string $stockInTable = 'stock_ins';
@@ -207,32 +367,6 @@ class StockInRequestController extends Controller
         ]);
     }
 
-    private function generateStockInNumber(): string
-    {
-        $prefix = 'SIN-' . now()->format('Ymd') . '-';
-
-        $numberColumn = $this->stockInNumberColumn();
-
-        if (!$numberColumn) {
-            return $prefix . '001';
-        }
-
-        $lastNumber = DB::table($this->stockInTable)
-            ->where($numberColumn, 'like', $prefix . '%')
-            ->orderByDesc('id')
-            ->lockForUpdate()
-            ->value($numberColumn);
-
-        $sequence = 1;
-
-        if ($lastNumber) {
-            $lastSequence = (int) substr($lastNumber, -3);
-            $sequence = $lastSequence + 1;
-        }
-
-        return $prefix . str_pad($sequence, 3, '0', STR_PAD_LEFT);
-    }
-
     private function itemNoteColumn(): ?string
     {
         return $this->column($this->requestItemTable, [
@@ -319,55 +453,48 @@ class StockInRequestController extends Controller
 
     public function index(Request $request)
     {
-        $numberColumn = $this->requestNumberColumn();
-        $dateColumn = $this->requestDateColumn();
-        $noteColumn = $this->requestNoteColumn();
-        $statusColumn = $this->statusColumn();
-        $quantityColumn = $this->quantityColumn();
+        // $numberColumn = $this->requestNumberColumn();
+        // $dateColumn = $this->requestDateColumn();
+        // $noteColumn = $this->requestNoteColumn();
+        // $statusColumn = $this->statusColumn();
+        // $quantityColumn = $this->quantityColumn();
 
-        $stockInRequests = StockInRequest::query()
-            ->with(['supplier', 'warehouse', 'items.item'])
-            ->when($request->search, function ($query, $search) use ($numberColumn, $noteColumn) {
-                $query->where(function ($query) use ($search, $numberColumn, $noteColumn) {
-                    if ($numberColumn) {
-                        $query->orWhere($numberColumn, 'like', "%{$search}%");
-                    }
+        // $stockInRequests = StockInRequest::query()
+        //     ->with(['supplier', 'warehouse', 'items.item'])
+        //     ->when($request->search, function ($query, $search) use ($numberColumn, $noteColumn) {
+        //         $query->where(function ($query) use ($search, $numberColumn, $noteColumn) {
+        //             if ($numberColumn) {
+        //                 $query->orWhere($numberColumn, 'like', "%{$search}%");
+        //             }
 
-                    if ($noteColumn) {
-                        $query->orWhere($noteColumn, 'like', "%{$search}%");
-                    }
+        //             if ($noteColumn) {
+        //                 $query->orWhere($noteColumn, 'like', "%{$search}%");
+        //             }
 
-                    $query->orWhereHas('supplier', function ($supplierQuery) use ($search) {
-                        $supplierQuery->where('name', 'like', "%{$search}%");
-                    });
+        //             $query->orWhereHas('supplier', function ($supplierQuery) use ($search) {
+        //                 $supplierQuery->where('name', 'like', "%{$search}%");
+        //             });
 
-                    $query->orWhereHas('warehouse', function ($warehouseQuery) use ($search) {
-                        $warehouseQuery->where('name', 'like', "%{$search}%");
-                    });
-                });
-            })
-            ->when($request->status && $statusColumn, function ($query) use ($request, $statusColumn) {
-                $query->where($statusColumn, $request->status);
-            })
-            ->latest()
-            ->paginate(10)
-            ->withQueryString();
+        //             $query->orWhereHas('warehouse', function ($warehouseQuery) use ($search) {
+        //                 $warehouseQuery->where('name', 'like', "%{$search}%");
+        //             });
+        //         });
+        //     })
+        //     ->when($request->status && $statusColumn, function ($query) use ($request, $statusColumn) {
+        //         $query->where($statusColumn, $request->status);
+        //     })
+        //     ->latest()
+        //     ->paginate(10)
+        //     ->withQueryString();
 
-        return view('admin.stock-in-requests.index', compact(
-            'stockInRequests',
-            'numberColumn',
-            'dateColumn',
-            'noteColumn',
-            'statusColumn',
-            'quantityColumn'
-        ));
+        return view('admin.stock-in-requests.new-index');
     }
 
     public function create()
     {
-        $suppliers = $this->activeQuery(Supplier::class)->orderBy('name')->get();
-        $warehouses = $this->activeQuery(Warehouse::class)->orderBy('name')->get();
-        $items = $this->activeQuery(Item::class)->orderBy('name')->get();
+        $suppliers = $this->supplierRepo->getAll();
+        $warehouses = $this->warehouseRepo->getAllActive();
+        $items = $this->itemRepo->getAllActive();
 
         return view('admin.stock-in-requests.create', compact(
             'suppliers',
@@ -378,63 +505,7 @@ class StockInRequestController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'supplier_id' => ['required', 'exists:suppliers,id'],
-            'warehouse_id' => ['required', 'exists:warehouses,id'],
-            'request_date' => ['required', 'date'],
-            'note' => ['nullable', 'string'],
-            'item_id' => ['required', 'array', 'min:1'],
-            'item_id.*' => ['required', 'exists:items,id'],
-            'quantity' => ['required', 'array', 'min:1'],
-            'quantity.*' => ['required', 'integer', 'min:1'],
-            'item_note' => ['nullable', 'array'],
-            'item_note.*' => ['nullable', 'string'],
-        ]);
-
-        DB::transaction(function () use ($validated) {
-            $headerPayload = [];
-
-            if ($numberColumn = $this->requestNumberColumn()) {
-                $headerPayload[$numberColumn] = $this->generateRequestNumber();
-            }
-
-            if (Schema::hasColumn($this->requestTable, 'supplier_id')) {
-                $headerPayload['supplier_id'] = $validated['supplier_id'];
-            }
-
-            if (Schema::hasColumn($this->requestTable, 'warehouse_id')) {
-                $headerPayload['warehouse_id'] = $validated['warehouse_id'];
-            }
-
-            if ($dateColumn = $this->requestDateColumn()) {
-                $headerPayload[$dateColumn] = $validated['request_date'];
-            }
-
-            if ($noteColumn = $this->requestNoteColumn()) {
-                $headerPayload[$noteColumn] = $validated['note'] ?? null;
-            }
-
-            if ($createdByColumn = $this->createdByColumn()) {
-                $headerPayload[$createdByColumn] = Auth::id();
-            }
-
-            if ($statusColumn = $this->statusColumn()) {
-                $headerPayload[$statusColumn] = 'pending';
-            }
-
-            $stockInRequest = StockInRequest::create($headerPayload);
-
-            foreach ($validated['item_id'] as $index => $itemId) {
-                StockInRequestItem::create(
-                    $this->detailPayload(
-                        $stockInRequest->id,
-                        (int) $itemId,
-                        (int) $validated['quantity'][$index],
-                        $validated['item_note'][$index] ?? null
-                    )
-                );
-            }
-        });
+        $stockInRequest = $this->stockInRequestService->store($request);
 
         return redirect()
             ->route('admin.stock-in-requests.index')
@@ -458,12 +529,6 @@ class StockInRequestController extends Controller
 
         return view('admin.stock-in-requests.show', compact(
             'stockInRequest',
-            'numberColumn',
-            'dateColumn',
-            'noteColumn',
-            'statusColumn',
-            'quantityColumn',
-            'itemNoteColumn'
         ));
     }
 
@@ -471,9 +536,9 @@ class StockInRequestController extends Controller
     {
         $stockInRequest->load(['items.item']);
 
-        $suppliers = $this->activeQuery(Supplier::class)->orderBy('name')->get();
-        $warehouses = $this->activeQuery(Warehouse::class)->orderBy('name')->get();
-        $items = $this->activeQuery(Item::class)->orderBy('name')->get();
+        $suppliers = $this->supplierRepo->getAll();
+        $warehouses = $this->warehouseRepo->getAllActive();
+        $items = $this->itemRepo->getAllActive();
 
         $numberColumn = $this->requestNumberColumn();
         $dateColumn = $this->requestDateColumn();
@@ -496,55 +561,7 @@ class StockInRequestController extends Controller
 
     public function update(Request $request, StockInRequest $stockInRequest)
     {
-        $validated = $request->validate([
-            'supplier_id' => ['required', 'exists:suppliers,id'],
-            'warehouse_id' => ['required', 'exists:warehouses,id'],
-            'request_date' => ['required', 'date'],
-            'note' => ['nullable', 'string'],
-            'item_id' => ['required', 'array', 'min:1'],
-            'item_id.*' => ['required', 'exists:items,id'],
-            'quantity' => ['required', 'array', 'min:1'],
-            'quantity.*' => ['required', 'integer', 'min:1'],
-            'item_note' => ['nullable', 'array'],
-            'item_note.*' => ['nullable', 'string'],
-        ]);
-
-        DB::transaction(function () use ($validated, $stockInRequest) {
-            $headerPayload = [];
-
-            if (Schema::hasColumn($this->requestTable, 'supplier_id')) {
-                $headerPayload['supplier_id'] = $validated['supplier_id'];
-            }
-
-            if (Schema::hasColumn($this->requestTable, 'warehouse_id')) {
-                $headerPayload['warehouse_id'] = $validated['warehouse_id'];
-            }
-
-            if ($dateColumn = $this->requestDateColumn()) {
-                $headerPayload[$dateColumn] = $validated['request_date'];
-            }
-
-            if ($noteColumn = $this->requestNoteColumn()) {
-                $headerPayload[$noteColumn] = $validated['note'] ?? null;
-            }
-
-            $stockInRequest->update($headerPayload);
-
-            $foreignKey = $this->requestItemForeignKey();
-
-            StockInRequestItem::where($foreignKey, $stockInRequest->id)->delete();
-
-            foreach ($validated['item_id'] as $index => $itemId) {
-                StockInRequestItem::create(
-                    $this->detailPayload(
-                        $stockInRequest->id,
-                        (int) $itemId,
-                        (int) $validated['quantity'][$index],
-                        $validated['item_note'][$index] ?? null
-                    )
-                );
-            }
-        });
+        $stockInRequest = $this->stockInRequestService->update($stockInRequest, $request);
 
         return redirect()
             ->route('admin.stock-in-requests.index')
@@ -553,270 +570,11 @@ class StockInRequestController extends Controller
 
     public function approve(StockInRequest $stockInRequest)
     {
-        try {
-            DB::transaction(function () use ($stockInRequest) {
-                $statusColumn = $this->statusColumn();
-                $foreignKey = $this->requestItemForeignKey();
-                $quantityColumn = $this->quantityColumn();
+        $updated = $this->stockInRequestService->approve($stockInRequest);
 
-                $lockedRequest = StockInRequest::query()
-                    ->whereKey($stockInRequest->id)
-                    ->lockForUpdate()
-                    ->firstOrFail();
-
-                if ($statusColumn && $lockedRequest->{$statusColumn} !== 'pending') {
-                    throw ValidationException::withMessages([
-                        'status' => 'Transaksi barang masuk ini sudah diproses.',
-                    ]);
-                }
-
-                $requestItems = DB::table($this->requestItemTable)
-                    ->where($foreignKey, $lockedRequest->id)
-                    ->get();
-
-                if ($requestItems->isEmpty()) {
-                    throw ValidationException::withMessages([
-                        'items' => 'Transaksi barang masuk belum memiliki detail barang.',
-                    ]);
-                }
-
-                $stockInPayload = [];
-
-                if ($stockInRequestForeignKey = $this->stockInRequestForeignKey()) {
-                    $stockInPayload[$stockInRequestForeignKey] = $lockedRequest->id;
-                }
-
-                if ($numberColumn = $this->stockInNumberColumn()) {
-                    $stockInPayload[$numberColumn] = $this->generateStockInNumber();
-                }
-
-                if (Schema::hasColumn($this->stockInTable, 'supplier_id')) {
-                    $stockInPayload['supplier_id'] = $lockedRequest->supplier_id;
-                }
-
-                if (Schema::hasColumn($this->stockInTable, 'warehouse_id')) {
-                    $stockInPayload['warehouse_id'] = $lockedRequest->warehouse_id;
-                }
-
-                if (Schema::hasColumn($this->stockInTable, 'received_by')) {
-                    $stockInPayload['received_by'] = Auth::id();
-                }
-
-                if (Schema::hasColumn($this->stockInTable, 'approved_by')) {
-                    $stockInPayload['approved_by'] = Auth::id();
-                }
-
-                if (Schema::hasColumn($this->stockInTable, 'created_by')) {
-                    $stockInPayload['created_by'] = Auth::id();
-                }
-
-                if ($stockInDateColumn = $this->stockInDateColumn()) {
-                    $stockInPayload[$stockInDateColumn] = now()->toDateString();
-                }
-
-                if ($stockInNoteColumn = $this->stockInNoteColumn()) {
-                    $requestNoteColumn = $this->requestNoteColumn();
-                    $stockInPayload[$stockInNoteColumn] = $requestNoteColumn ? $lockedRequest->{$requestNoteColumn} : null;
-                }
-
-                if (Schema::hasColumn($this->stockInTable, 'created_at')) {
-                    $stockInPayload['created_at'] = now();
-                }
-
-                if (Schema::hasColumn($this->stockInTable, 'updated_at')) {
-                    $stockInPayload['updated_at'] = now();
-                }
-
-                $stockInId = DB::table($this->stockInTable)->insertGetId($stockInPayload);
-
-                foreach ($requestItems as $requestItem) {
-                    $quantity = (int) $requestItem->{$quantityColumn};
-
-                    $stockInItemPayload = [
-                        $this->stockInItemForeignKey() => $stockInId,
-                        'item_id' => $requestItem->item_id,
-                        $this->stockInItemQuantityColumn() => $quantity,
-                    ];
-
-                    if (Schema::hasColumn($this->stockInItemTable, 'unit_id')) {
-                        if (isset($requestItem->unit_id) && $requestItem->unit_id) {
-                            $stockInItemPayload['unit_id'] = $requestItem->unit_id;
-                        } else {
-                            $stockInItemPayload['unit_id'] = Item::where('id', $requestItem->item_id)->value('unit_id');
-                        }
-                    }
-
-                    if ($stockInItemNoteColumn = $this->stockInItemNoteColumn()) {
-                        $requestItemNoteColumn = $this->itemNoteColumn();
-                        $stockInItemPayload[$stockInItemNoteColumn] = $requestItemNoteColumn
-                            ? ($requestItem->{$requestItemNoteColumn} ?? null)
-                            : null;
-                    }
-
-                    if (Schema::hasColumn($this->stockInItemTable, 'created_at')) {
-                        $stockInItemPayload['created_at'] = now();
-                    }
-
-                    if (Schema::hasColumn($this->stockInItemTable, 'updated_at')) {
-                        $stockInItemPayload['updated_at'] = now();
-                    }
-
-                    DB::table($this->stockInItemTable)->insert($stockInItemPayload);
-
-                    $stockQuantityColumn = $this->itemStockQuantityColumn();
-
-                    $itemStock = DB::table($this->itemStockTable)
-                        ->where('warehouse_id', $lockedRequest->warehouse_id)
-                        ->where('item_id', $requestItem->item_id)
-                        ->lockForUpdate()
-                        ->first();
-
-                    if (!$itemStock) {
-                        $itemStockPayload = [
-                            'warehouse_id' => $lockedRequest->warehouse_id,
-                            'item_id' => $requestItem->item_id,
-                            $stockQuantityColumn => 0,
-                        ];
-
-                        if (Schema::hasColumn($this->itemStockTable, 'created_at')) {
-                            $itemStockPayload['created_at'] = now();
-                        }
-
-                        if (Schema::hasColumn($this->itemStockTable, 'updated_at')) {
-                            $itemStockPayload['updated_at'] = now();
-                        }
-
-                        DB::table($this->itemStockTable)->insert($itemStockPayload);
-
-                        $itemStock = DB::table($this->itemStockTable)
-                            ->where('warehouse_id', $lockedRequest->warehouse_id)
-                            ->where('item_id', $requestItem->item_id)
-                            ->lockForUpdate()
-                            ->first();
-                    }
-
-                    $stockBefore = (int) $itemStock->{$stockQuantityColumn};
-                    $stockAfter = $stockBefore + $quantity;
-
-                    $itemStockUpdatePayload = [
-                        $stockQuantityColumn => $stockAfter,
-                    ];
-
-                    if (Schema::hasColumn($this->itemStockTable, 'updated_at')) {
-                        $itemStockUpdatePayload['updated_at'] = now();
-                    }
-
-                    DB::table($this->itemStockTable)
-                        ->where('id', $itemStock->id)
-                        ->update($itemStockUpdatePayload);
-
-                    $mutationPayload = [];
-
-                    if (Schema::hasColumn($this->stockMutationTable, 'item_id')) {
-                        $mutationPayload['item_id'] = $requestItem->item_id;
-                    }
-
-                    if (Schema::hasColumn($this->stockMutationTable, 'warehouse_id')) {
-                        $mutationPayload['warehouse_id'] = $lockedRequest->warehouse_id;
-                    }
-
-                    if (Schema::hasColumn($this->stockMutationTable, 'stock_in_id')) {
-                        $mutationPayload['stock_in_id'] = $stockInId;
-                    }
-
-                    if (Schema::hasColumn($this->stockMutationTable, 'reference_type')) {
-                        $mutationPayload['reference_type'] = 'stock_in';
-                    }
-
-                    if (Schema::hasColumn($this->stockMutationTable, 'reference_id')) {
-                        $mutationPayload['reference_id'] = $stockInId;
-                    }
-
-                    if (Schema::hasColumn($this->stockMutationTable, 'mutation_type')) {
-                        $mutationPayload['mutation_type'] = 'in';
-                    }
-
-                    if (Schema::hasColumn($this->stockMutationTable, 'type')) {
-                        $mutationPayload['type'] = 'in';
-                    }
-
-                    if (Schema::hasColumn($this->stockMutationTable, 'quantity')) {
-                        $mutationPayload['quantity'] = $quantity;
-                    }
-
-                    if (Schema::hasColumn($this->stockMutationTable, 'qty')) {
-                        $mutationPayload['qty'] = $quantity;
-                    }
-
-                    if (Schema::hasColumn($this->stockMutationTable, 'stock_before')) {
-                        $mutationPayload['stock_before'] = $stockBefore;
-                    }
-
-                    if (Schema::hasColumn($this->stockMutationTable, 'stock_after')) {
-                        $mutationPayload['stock_after'] = $stockAfter;
-                    }
-
-                    if (Schema::hasColumn($this->stockMutationTable, 'mutation_date')) {
-                        $mutationPayload['mutation_date'] = now();
-                    }
-
-                    if (Schema::hasColumn($this->stockMutationTable, 'date')) {
-                        $mutationPayload['date'] = now()->toDateString();
-                    }
-
-                    if (Schema::hasColumn($this->stockMutationTable, 'description')) {
-                        $requestNumberColumn = $this->requestNumberColumn();
-
-                        $mutationPayload['description'] = 'Barang masuk dari approval transaksi '
-                            . ($requestNumberColumn ? $lockedRequest->{$requestNumberColumn} : $lockedRequest->id);
-                    }
-
-                    if (Schema::hasColumn($this->stockMutationTable, 'created_by')) {
-                        $mutationPayload['created_by'] = Auth::id();
-                    }
-
-                    if (Schema::hasColumn($this->stockMutationTable, 'created_at')) {
-                        $mutationPayload['created_at'] = now();
-                    }
-
-                    if (Schema::hasColumn($this->stockMutationTable, 'updated_at')) {
-                        $mutationPayload['updated_at'] = now();
-                    }
-
-                    DB::table($this->stockMutationTable)->insert($mutationPayload);
-                }
-
-                $requestUpdatePayload = [];
-
-                if ($statusColumn) {
-                    $requestUpdatePayload[$statusColumn] = 'approved';
-                }
-
-                if ($approvedByColumn = $this->approvedByColumn()) {
-                    $requestUpdatePayload[$approvedByColumn] = Auth::id();
-                }
-
-                if ($approvedAtColumn = $this->approvedAtColumn()) {
-                    $requestUpdatePayload[$approvedAtColumn] = now();
-                }
-
-                if ($rejectedReasonColumn = $this->rejectedReasonColumn()) {
-                    $requestUpdatePayload[$rejectedReasonColumn] = null;
-                }
-
-                $lockedRequest->update($requestUpdatePayload);
-            });
-
-            return redirect()
-                ->route('admin.stock-in-requests.index')
-                ->with('success', 'Transaksi barang masuk berhasil disetujui dan stok berhasil diperbarui.');
-        } catch (ValidationException $e) {
-            throw $e;
-        } catch (\Throwable $e) {
-            return redirect()
-                ->route('admin.stock-in-requests.index')
-                ->with('error', 'Transaksi barang masuk gagal disetujui. Pastikan tabel stock_ins, stock_in_items, item_stocks, dan stock_mutations sudah sesuai.');
-        }
+        return redirect()
+            ->route('admin.stock-in-requests.index')
+            ->with('success', 'Transaksi barang masuk berhasil disetujui dan stok berhasil diperbarui.');
     }
 
     public function reject(Request $request, StockInRequest $stockInRequest)
@@ -824,73 +582,19 @@ class StockInRequestController extends Controller
         $validated = $request->validate([
             'rejected_reason' => ['nullable', 'string', 'max:500'],
         ]);
+        $updated = $this->stockInRequestService->reject($stockInRequest, $validated);
 
-        try {
-            DB::transaction(function () use ($stockInRequest, $validated) {
-                $statusColumn = $this->statusColumn();
-
-                $lockedRequest = StockInRequest::query()
-                    ->whereKey($stockInRequest->id)
-                    ->lockForUpdate()
-                    ->firstOrFail();
-
-                if ($statusColumn && $lockedRequest->{$statusColumn} !== 'pending') {
-                    throw ValidationException::withMessages([
-                        'status' => 'Transaksi barang masuk ini sudah diproses.',
-                    ]);
-                }
-
-                $requestUpdatePayload = [];
-
-                if ($statusColumn) {
-                    $requestUpdatePayload[$statusColumn] = 'rejected';
-                }
-
-                if ($approvedByColumn = $this->approvedByColumn()) {
-                    $requestUpdatePayload[$approvedByColumn] = Auth::id();
-                }
-
-                if ($approvedAtColumn = $this->approvedAtColumn()) {
-                    $requestUpdatePayload[$approvedAtColumn] = now();
-                }
-
-                if ($rejectedReasonColumn = $this->rejectedReasonColumn()) {
-                    $requestUpdatePayload[$rejectedReasonColumn] = $validated['rejected_reason'] ?? null;
-                }
-
-                $lockedRequest->update($requestUpdatePayload);
-            });
-
-            return redirect()
-                ->route('admin.stock-in-requests.index')
-                ->with('success', 'Transaksi barang masuk berhasil ditolak.');
-        } catch (ValidationException $e) {
-            throw $e;
-        } catch (\Throwable $e) {
-            return redirect()
-                ->route('admin.stock-in-requests.index')
-                ->with('error', 'Transaksi barang masuk gagal ditolak.');
-        }
+        return redirect()
+            ->route('admin.stock-in-requests.index')
+            ->with('success', 'Transaksi barang masuk berhasil ditolak.');
     }
 
     public function destroy(StockInRequest $stockInRequest)
     {
-        try {
-            DB::transaction(function () use ($stockInRequest) {
-                $foreignKey = $this->requestItemForeignKey();
+        $deleted = $this->stockInRequestService->destroy($stockInRequest);
 
-                StockInRequestItem::where($foreignKey, $stockInRequest->id)->delete();
-
-                $stockInRequest->delete();
-            });
-
-            return redirect()
-                ->route('admin.stock-in-requests.index')
-                ->with('success', 'Transaksi barang masuk berhasil dihapus.');
-        } catch (QueryException $e) {
-            return redirect()
-                ->route('admin.stock-in-requests.index')
-                ->with('error', 'Transaksi barang masuk tidak dapat dihapus karena sudah digunakan pada data lain.');
-        }
+        return redirect()
+            ->route('admin.stock-in-requests.index')
+            ->with('success', 'Transaksi barang masuk berhasil dihapus.');
     }
 }

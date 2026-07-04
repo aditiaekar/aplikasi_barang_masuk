@@ -8,6 +8,12 @@
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"
+        integrity="sha512-v2CJ7UaYy4JwqLDIrZUI/4hqeoQieOmAZNXBeQyjo21dadnwR+8ZaIJVT8EE2iyI61OV8e6M8PP2/4hpQINQ/g=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <link href="https://cdn.datatables.net/v/bs5/dt-2.3.2/b-3.2.4/r-3.0.5/sc-2.4.3/sb-1.8.3/datatables.min.css" rel="stylesheet" integrity="sha384-mQEEjSQ3XypQ/tKmE0YCCWqvMMFqyKLeSosK1md3wuP2nESWnQsea3HNkR2a9W5l" crossorigin="anonymous">
+
+
 
     <style>
         :root {
@@ -320,26 +326,26 @@
 
                 <div class="menu-label">Master Data</div>
 
-                <a href="{{ route('admin.master-data.index', 'categories') }}"
-                    class="menu-item {{ request()->is('admin/master-data/categories*') ? 'active' : '' }}">
+                <a href="{{ route('admin.categories.index') }}"
+                    class="menu-item {{ request()->is('admin/categories*') ? 'active' : '' }}">
                     <i class="bx bx-category"></i>
                     <span>Kategori</span>
                 </a>
 
-                <a href="{{ route('admin.master-data.index', 'units') }}"
-                    class="menu-item {{ request()->is('admin/master-data/units*') ? 'active' : '' }}">
+                <a href="{{ route('admin.units.index') }}"
+                    class="menu-item {{ request()->is('admin/units*') ? 'active' : '' }}">
                     <i class="bx bx-ruler"></i>
                     <span>Satuan</span>
                 </a>
 
-                <a href="{{ route('admin.master-data.index', 'suppliers') }}"
-                    class="menu-item {{ request()->is('admin/master-data/suppliers*') ? 'active' : '' }}">
+                <a href="{{ route('admin.suppliers.index') }}"
+                    class="menu-item {{ request()->is('admin/suppliers*') ? 'active' : '' }}">
                     <i class="bx bx-store"></i>
                     <span>Supplier</span>
                 </a>
 
-                <a href="{{ route('admin.master-data.index', 'warehouses') }}"
-                    class="menu-item {{ request()->is('admin/master-data/warehouses*') ? 'active' : '' }}">
+                <a href="{{ route('admin.warehouses.index', 'warehouses') }}"
+                    class="menu-item {{ request()->is('admin/warehouses*') ? 'active' : '' }}">
                     <i class="bx bx-building-house"></i>
                     <span>Gudang</span>
                 </a>
@@ -358,6 +364,12 @@
                     <span>Barang Masuk</span>
                 </a>
 
+                <a href="{{ route('admin.stock-out-requests.index') }}"
+                    class="menu-item {{ request()->routeIs('admin.stock-out-requests.*') ? 'active' : '' }}">
+                    <i class="bx bx-log-in-circle"></i>
+                    <span>Barang Keluar</span>
+                </a>
+
                 <a href="{{ route('admin.stocks.index') }}"
                     class="menu-item {{ request()->routeIs('admin.stocks.*') ? 'active' : '' }}">
                     <i class="bx bx-package"></i>
@@ -372,14 +384,12 @@
 
                 <div class="menu-label">Laporan</div>
 
-                <a href="{{ route('admin.reports.stocks.export') }}"
-                    class="menu-item">
+                <a href="{{ route('admin.reports.stocks.export') }}" class="menu-item">
                     <i class="bx bx-package"></i>
                     <span>Laporan Stok Barang</span>
                 </a>
 
-                <a href="{{ route('admin.reports.stock-mutations.export') }}"
-                    class="menu-item">
+                <a href="{{ route('admin.reports.stock-mutations.export') }}" class="menu-item">
                     <i class="bx bx-transfer-alt"></i>
                     <span>Laporan Mutasi Stok</span>
                 </a>
@@ -434,7 +444,8 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script>
         const sidebar = document.getElementById('adminSidebar');
         const sidebarToggle = document.getElementById('sidebarToggle');

@@ -7,6 +7,11 @@ use App\Http\Controllers\Admin\MasterDataController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\StockController;
 use App\Http\Controllers\Admin\StockInRequestController;
+use App\Http\Controllers\Admin\StockOutRequestController;
+use App\Http\Controllers\Admin\CategoryController;
+use App\Http\Controllers\Admin\UnitController;
+use App\Http\Controllers\Admin\SupplierController;
+use App\Http\Controllers\Admin\WarehouseController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -62,8 +67,20 @@ Route::middleware(['auth', 'role:super_admin,admin_gudang'])
     ->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
+        route::get('items/data', [ItemController::class, 'data'])->name('items.data');
         Route::resource('items', ItemController::class);
 
+        Route::get(
+            'stock-in-requests/items/data',
+            [StockInRequestController::class, 'itemData']
+        )->name('stock-in-requests.items.data');
+
+        Route::get(
+            'stock-out-requests/items/data',
+            [StockOutRequestController::class, 'itemData']
+        )->name('stock-out-requests.items.data');
+
+        route::get('stock-in-requests/data', [StockInRequestController::class, 'data'])->name('stock-in-requests.data');
         Route::resource('stock-in-requests', StockInRequestController::class);
 
         Route::post('/stock-in-requests/{stockInRequest}/approve', [StockInRequestController::class, 'approve'])
@@ -72,11 +89,26 @@ Route::middleware(['auth', 'role:super_admin,admin_gudang'])
         Route::post('/stock-in-requests/{stockInRequest}/reject', [StockInRequestController::class, 'reject'])
             ->name('stock-in-requests.reject');
 
+
+        Route::post('/stock-out-requests/{stockOutRequest}/approve', [StockOutRequestController::class, 'approve'])
+            ->name('stock-out-requests.approve');
+
+        Route::post('/stock-out-requests/{stockOutRequest}/reject', [StockOutRequestController::class, 'reject'])
+            ->name('stock-out-requests.reject');
+
+        route::get('stock-out-requests/data', [StockOutRequestController::class, 'data'])->name('stock-out-requests.data');
+        Route::get('/stock-out-requests/warehouse/{warehouse}/items', [StockOutRequestController::class, 'warehouseItems'])
+            ->name('stock-out-requests.warehouse-items');
+        Route::resource('stock-out-requests', StockOutRequestController::class)
+            ->parameters(['stock-out-requests' => 'stockOutRequest']);
+
         // Stok barang
+        Route::get('/stocks/data', [StockController::class, 'data'])->name('stocks.data');
         Route::get('/stocks', [StockController::class, 'index'])
             ->name('stocks.index');
 
         // Riwayat mutasi stok
+        Route::get('/stock-mutations/data', [StockController::class, 'mutation_data'])->name('stocks.mutations.data');
         Route::get('/stock-mutations', [StockController::class, 'mutations'])
             ->name('stock-mutations.index');
 
@@ -85,6 +117,15 @@ Route::middleware(['auth', 'role:super_admin,admin_gudang'])
 
         Route::get('/reports/stock-mutations/export', [ReportController::class, 'exportStockMutations'])
             ->name('reports.stock-mutations.export');
+
+        Route::get('/categories/data', [CategoryController::class, 'data'])->name('categories.data');
+        Route::resource('/categories', CategoryController::class);
+        Route::get('/units/data', [UnitController::class, 'data'])->name('units.data');
+        Route::resource('/units', UnitController::class);
+        Route::get('/suppliers/data', [SupplierController::class, 'data'])->name('suppliers.data');
+        Route::resource('/suppliers', SupplierController::class);
+        Route::get('/warehouses/data', [WarehouseController::class, 'data'])->name('warehouses.data');
+        Route::resource('/warehouses', WarehouseController::class);
 
         Route::prefix('master-data')
             ->name('master-data.')

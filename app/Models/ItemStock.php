@@ -10,6 +10,7 @@ class ItemStock extends Model
         'item_id',
         'warehouse_id',
         'stock',
+        'quantity'
     ];
 
     public function item()

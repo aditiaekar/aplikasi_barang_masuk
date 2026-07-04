@@ -11,6 +11,7 @@ class StockMutation extends Model
         'item_id',
         'warehouse_id',
         'stock_in_id',
+        'stock_out_id',
         'mutation_type',
         'quantity',
         'stock_before',

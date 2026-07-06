@@ -87,7 +87,7 @@ class StockController extends Controller
 
     public function index(Request $request)
     {
-        $warehouses = $this->warehouseRepo->getAllActive();
+        $warehouses = $this->warehouseRepo->getAll();
 
         return view('admin.stocks.index', compact(
             'warehouses'
@@ -174,7 +174,7 @@ class StockController extends Controller
 
     public function mutations(Request $request)
     {
-        $warehouses = $this->warehouseRepo->getAllActive();
+        $warehouses = $this->warehouseRepo->getAll();
 
         return view('admin.stocks.mutations', compact(
             'warehouses',

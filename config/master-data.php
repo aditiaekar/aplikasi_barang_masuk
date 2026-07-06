@@ -42,7 +42,6 @@ return [
         'fields' => [
             ['name' => 'code', 'label' => 'Kode Satuan', 'type' => 'text', 'required' => false, 'unique' => true, 'searchable' => true, 'placeholder' => 'Contoh: PCS'],
             ['name' => 'name', 'label' => 'Nama Satuan', 'type' => 'text', 'required' => true, 'searchable' => true, 'placeholder' => 'Contoh: Pieces'],
-            ['name' => 'symbol', 'label' => 'Simbol', 'type' => 'text', 'required' => false, 'searchable' => true, 'placeholder' => 'Contoh: pcs'],
             ['name' => 'description', 'label' => 'Deskripsi', 'type' => 'textarea', 'required' => false, 'searchable' => true, 'placeholder' => 'Masukkan deskripsi satuan'],
             ['name' => 'is_active', 'label' => 'Status', 'type' => 'select_status', 'required' => false],
         ],

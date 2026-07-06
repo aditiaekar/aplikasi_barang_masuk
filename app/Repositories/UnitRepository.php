@@ -9,4 +9,8 @@ class UnitRepository{
     public function getAllActive() {
         return Unit::where('is_active',1)->orderBy('name')->get();
     }
+
+    public function getAll() {
+        return Unit::get();
+    }
 }

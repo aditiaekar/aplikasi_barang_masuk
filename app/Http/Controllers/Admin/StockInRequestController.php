@@ -48,16 +48,34 @@ class StockInRequestController extends Controller
 
         if ($request->filled('keyword')) {
             $keyword = trim($request->keyword);
+            $searchDate = null;
 
-            $query->where(function ($q) use ($keyword) {
+            foreach (['m-d-Y', 'Y-m-d'] as $format) {
+                $parsedDate = \DateTimeImmutable::createFromFormat('!' . $format, $keyword);
+                $dateErrors = \DateTimeImmutable::getLastErrors();
+
+                if (
+                    $parsedDate !== false
+                    && ($dateErrors === false || ($dateErrors['warning_count'] === 0 && $dateErrors['error_count'] === 0))
+                    && $parsedDate->format($format) === $keyword
+                ) {
+                    $searchDate = $parsedDate->format('Y-m-d');
+                    break;
+                }
+            }
+
+            $query->where(function ($q) use ($keyword, $searchDate) {
                 $q->where('request_number', 'like', "%{$keyword}%")
-                    ->orWhereDate('request_date', "$keyword")
                     ->orWhereHas('supplier', function ($supplier) use ($keyword) {
                         $supplier->where('name', 'like', "%{$keyword}%");
                     })
                     ->orWhereHas('warehouse', function ($warehouse) use ($keyword) {
                         $warehouse->where('name', 'like', "%{$keyword}%");
                     });
+
+                if ($searchDate !== null) {
+                    $q->orWhereDate('request_date', $searchDate);
+                }
             });
         }
 

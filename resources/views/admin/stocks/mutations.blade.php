@@ -43,9 +43,9 @@
                             Filter
                         </button>
 
-                        <button type="button" class="btn btn-light border">
+                        <button type="button" id="btnReset" class="btn btn-light border">
                             Reset
-                            </a>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -226,6 +226,14 @@
 
             $('#btnFilter').on('click', function() {
                 table.ajax.reload();
+            });
+
+            $('#btnReset').on('click', function() {
+                $('#filterKeyword').val('');
+                $('#filterWarehouse').val('');
+
+                table.state.clear();
+                table.ajax.reload(null, true);
             });
         });
     </script>

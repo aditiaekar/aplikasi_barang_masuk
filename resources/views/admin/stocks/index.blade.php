@@ -175,6 +175,13 @@
             $('#btnFilter').on('click', function() {
                 table.ajax.reload();
             });
+
+            $('#btnReset').on('click', function() {
+                $('#filterWarehouse').val('');
+
+                table.state.clear();
+                table.ajax.reload(null, true);
+            });
         });
     </script>
 @endpush

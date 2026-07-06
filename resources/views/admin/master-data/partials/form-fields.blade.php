@@ -30,8 +30,8 @@
                 </label>
 
                 <select name="{{ $fieldName }}" class="form-select @error($fieldName) is-invalid @enderror">
-                    <option value="1" {{ (string) $oldValue === '1' || $oldValue === true ? 'selected' : '' }}>Aktif</option>
-                    <option value="0" {{ (string) $oldValue === '0' ? 'selected' : '' }}>Nonaktif</option>
+                    <option value="1" @selected($oldValue === true || (string) $oldValue === '1')>Aktif</option>
+                    <option value="0" @selected($oldValue === false || (string) $oldValue === '0')>Nonaktif</option>
                 </select>
 
                 @error($fieldName)

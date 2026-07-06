@@ -69,7 +69,7 @@
     <div class="col-md-6">
         <label for="price" class="form-label">Harga</label>
         <input type="number" name="price" id="price" class="form-control @error('price') is-invalid @enderror"
-            value="{{ old('price', (int)$item->price ?? 0) }}" min="0" required>
+            value="{{ old('price', $item->price ?? 0) }}" min="0" required>
 
         @error('price')
             <div class="invalid-feedback">

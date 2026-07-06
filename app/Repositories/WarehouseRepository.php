@@ -8,4 +8,8 @@ class WarehouseRepository {
     public function getAllActive() {
         return Warehouse::where('is_active',1)->orderBy('name')->get();
     }
+
+    public function getAll() {
+        return Warehouse::get();
+    }
 }

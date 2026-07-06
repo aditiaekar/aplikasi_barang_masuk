@@ -163,8 +163,6 @@ class ItemController extends Controller
 
     public function index(Request $request)
     {
-        $columns = $this->itemColumns();
-        $stockColumn = $this->stockColumn();
 
         // $items = Item::query()
         //     ->with(['category', 'unit', 'stocks.warehouse'])
@@ -196,13 +194,12 @@ class ItemController extends Controller
         //     ->paginate(10)
         //     ->withQueryString();
 
-        $categories = $this->activeQuery(Category::class)->orderBy('name')->get();
-        $units = $this->activeQuery(Unit::class)->orderBy('name')->get();
+        $categories = $this->categoryRepo->getAll();
+        $units = $this->unitRepo->getAll();
 
         return view('admin.items.new-index', compact(
             'categories',
             'units',
-            'stockColumn'
         ));
     }
 

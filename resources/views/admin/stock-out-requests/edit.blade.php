@@ -13,9 +13,16 @@
 
     $noteValue = $stockOutRequest->note;
 
-    $detailRows = $stockOutRequest->items->map(function ($detail) {
+    $availableItemsById = $items->keyBy('id');
+
+    $detailRows = $stockOutRequest->items->map(function ($detail) use ($availableItemsById) {
+        $availableItem = $availableItemsById->get($detail->item_id);
+
         return [
             'item_id' => $detail->item_id,
+            'item_code' => $detail->item?->item_code,
+            'name' => $detail->item?->name,
+            'available_stock' => $availableItem?->available_stock ?? $detail->quantity,
             'quantity' => $detail->quantity,
             'note' => $detail->note,
         ];

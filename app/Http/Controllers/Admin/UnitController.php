@@ -90,7 +90,7 @@ class UnitController extends Controller
     public function store(Request $request)
     {
         $config = $this->config();
-        $data = $request->validated($config['rules']);
+        $data = $request->validate($config['rules']);
 
         Unit::create($data);
 
@@ -110,16 +110,16 @@ class UnitController extends Controller
         $config = $this->config();
         $fields = $config['fields'];
         $item = $unit;
-        $storeRoute = route('admin.units.store');
+        $updateRoute = route('admin.units.update', $unit);
         $indexRoute = route('admin.units.index');
 
-        return view('admin.master-data.create', compact(
+        return view('admin.master-data.edit', compact(
             'type',
             'config',
             'fields',
-            'storeRoute',
+            'item',
+            'updateRoute',
             'indexRoute',
-            'item'
         ));
     }
 
@@ -133,7 +133,7 @@ class UnitController extends Controller
             Rule::unique('units','code')->ignore($unit),
         ];
 
-        $unit->updated($request->validate($rules));
+        $unit->update($request->validate($rules));
 
         return redirect()
             ->route('admin.units.index')

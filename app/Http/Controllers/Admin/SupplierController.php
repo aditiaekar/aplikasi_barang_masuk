@@ -90,7 +90,7 @@ class SupplierController extends Controller
     public function store(Request $request)
     {
         $config = $this->config();
-        $data = $request->validated($config['rules']);
+        $data = $request->validate($config['rules']);
 
         Supplier::create($data);
 
@@ -110,16 +110,16 @@ class SupplierController extends Controller
         $config = $this->config();
         $fields = $config['fields'];
         $item = $supplier;
-        $storeRoute = route('admin.suppliers.store');
+        $updateRoute = route('admin.suppliers.update', $supplier);
         $indexRoute = route('admin.suppliers.index');
 
-        return view('admin.master-data.create', compact(
+        return view('admin.master-data.edit', compact(
             'type',
             'config',
             'fields',
-            'storeRoute',
+            'item',
+            'updateRoute',
             'indexRoute',
-            'item'
         ));
     }
 
@@ -133,7 +133,7 @@ class SupplierController extends Controller
             Rule::unique('suppliers', 'code')->ignore($supplier),
         ];
 
-        $supplier->updated($request->validate($rules));
+        $supplier->update($request->validate($rules));
 
         return redirect()
             ->route('admin.suppliers.index')

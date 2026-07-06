@@ -90,7 +90,7 @@ class WarehouseController extends Controller
     public function store(Request $request)
     {
         $config = $this->config();
-        $data = $request->validated($config['rules']);
+        $data = $request->validate($config['rules']);
 
         Warehouse::create($data);
 
@@ -101,7 +101,7 @@ class WarehouseController extends Controller
 
     public function show(Warehouse $warehouse)
     {
-        return redirect()->route('admin.warehouse.edit', $warehouse);
+        return redirect()->route('admin.warehouses.edit', $warehouse);
     }
 
     public function edit(Warehouse $warehouse)
@@ -110,16 +110,16 @@ class WarehouseController extends Controller
         $config = $this->config();
         $fields = $config['fields'];
         $item = $warehouse;
-        $storeRoute = route('admin.warehouses.store');
+        $updateRoute = route('admin.warehouses.update',$warehouse);
         $indexRoute = route('admin.warehouses.index');
 
-        return view('admin.master-data.create', compact(
+        return view('admin.master-data.edit', compact(
             'type',
             'config',
             'fields',
-            'storeRoute',
+            'item',
+            'updateRoute',
             'indexRoute',
-            'item'
         ));
     }
 
@@ -133,7 +133,7 @@ class WarehouseController extends Controller
             Rule::unique('warehouses', 'code')->ignore($warehouse),
         ];
 
-        $warehouse->updated($request->validate($rules));
+        $warehouse->update($request->validate($rules));
 
         return redirect()
             ->route('admin.warehouses.index')

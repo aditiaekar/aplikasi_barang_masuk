@@ -227,7 +227,7 @@
             <table id="datatable" class="table align-middle">
                 <thead>
                     <tr>
-                        <th style="width: 70px;">No</th>
+                        <th style="width: 20px;">No</th>
                         <th>No. Transaksi</th>
                         <th>Tanggal</th>
                         <th>Supplier</th>
@@ -381,7 +381,13 @@
                     },
                     {
                         data: 'request_date',
-                        name: 'request_date'
+                        name: 'request_date',
+                        render: function(data, type, row) {
+                            var dateSplit = data.split('-');
+                            return type === "display" || type === "filter" ?
+                                dateSplit[1] + '-' + dateSplit[2] + '-' + dateSplit[0] :
+                                data;
+                        }
                     },
                     {
                         data: 'supplier.name',

@@ -184,13 +184,13 @@
                 <div class="row g-3 align-items-end">
                     <div class="col-lg-8 col-md-8">
                         <label class="form-label fw-semibold">Pencarian</label>
-                        <input type="text" name="search" value="{{ request('search') }}" class="form-control"
-                            placeholder="Cari nomor transaksi, supplier, gudang, atau catatan">
+                        <input type="text" id="filterKeyword" name="search" value="{{ request('search') }}"
+                            class="form-control" placeholder="Cari nomor transaksi, gudang, atau tanggal">
                     </div>
 
                     <div class="col-lg-2 col-md-4">
                         <label class="form-label fw-semibold">Status</label>
-                        <select name="status" class="form-select">
+                        <select id="filterStatus" name="status" class="form-select">
                             <option value="">Semua</option>
                             <option value="pending" {{ request('status') === 'pending' ? 'selected' : '' }}>Pending
                             </option>
@@ -202,7 +202,7 @@
                     </div>
 
                     <div class="col-lg-2 col-md-4 d-grid">
-                        <button type="submit" class="btn btn-dark rounded-4">
+                        <button type="button" id="btnFilter" class="btn btn-dark rounded-4">
                             <i class="bx bx-search me-1"></i>
                             Filter
                         </button>
@@ -227,7 +227,7 @@
             <table id="datatable" class="table align-middle">
                 <thead>
                     <tr>
-                        <th style="width: 70px;">No</th>
+                        <th style="width: 20px;">No</th>
                         <th>No. Transaksi</th>
                         <th>Tanggal</th>
                         <th>Gudang</th>
@@ -358,7 +358,13 @@
                     },
                     {
                         data: 'request_date',
-                        name: 'request_date'
+                        name: 'request_date',
+                        render: function(data, type, row) {
+                            var dateSplit = data.split('-');
+                            return type === "display" || type === "filter" ?
+                                dateSplit[1] + '-' + dateSplit[2] + '-' + dateSplit[0] :
+                                data;
+                        }
                     },
                     {
                         data: 'warehouse.name',

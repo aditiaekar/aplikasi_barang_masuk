@@ -29,13 +29,29 @@ class StockOutRequestController extends Controller
 
         if ($request->filled('keyword')) {
             $keyword = trim($request->keyword);
+            $searchDate = null;
 
-            $query->where(function ($q) use ($keyword) {
+            foreach (['m-d-Y', 'Y-m-d'] as $format) {
+                $parsedDate = \DateTimeImmutable::createFromFormat('!' . $format, $keyword);
+                $dateErrors = \DateTimeImmutable::getLastErrors();
+
+                if (
+                    $parsedDate !== false
+                    && ($dateErrors === false || ($dateErrors['warning_count'] === 0 && $dateErrors['error_count'] === 0))
+                    && $parsedDate->format($format) === $keyword
+                ) {
+                    $searchDate = $parsedDate->format('Y-m-d');
+                    break;
+                }
+            }
+            $query->where(function ($q) use ($keyword,$searchDate) {
                 $q->where('request_number', 'like', "%{$keyword}%")
-                    ->orWhereDate('request_date', "$keyword")
                     ->orWhereHas('warehouse', function ($warehouse) use ($keyword) {
                         $warehouse->where('name', 'like', "%{$keyword}%");
                     });
+                if ($searchDate !== null) {
+                    $q->orWhereDate('request_date', $searchDate);
+                }
             });
         }
 
@@ -186,9 +202,13 @@ class StockOutRequestController extends Controller
 
     public function create()
     {
+        $warehouseId = old('warehouse_id');
+
         return view('admin.stock-out-requests.create', [
             'warehouses' => $this->warehouseRepo->getAllActive(),
-            'items' => collect(),
+            'items' => $warehouseId
+                ? $this->stockOutRequestRepo->getAvailableItemsByWarehouse((int) $warehouseId)
+                : collect(),
         ]);
     }
 
@@ -210,11 +230,12 @@ class StockOutRequestController extends Controller
     public function edit(StockOutRequest $stockOutRequest)
     {
         $stockOutRequest->load(['items.item']);
+        $warehouseId = (int) old('warehouse_id', $stockOutRequest->warehouse_id);
 
         return view('admin.stock-out-requests.edit', [
             'stockOutRequest' => $stockOutRequest,
             'warehouses' => $this->warehouseRepo->getAllActive(),
-            'items' => $this->stockOutRequestRepo->getAvailableItemsByWarehouse($stockOutRequest->warehouse_id),
+            'items' => $this->stockOutRequestRepo->getAvailableItemsByWarehouse($warehouseId),
         ]);
     }
 

@@ -111,7 +111,7 @@
                             <td>
                                 <strong>{{ $item->item->name ?? '-' }}</strong>
                                 <div class="small text-muted">
-                                    {{ $item->item->code ?? '-' }}
+                                    {{ $item->item->item_code ?? '-' }}
                                 </div>
                             </td>
                             <td>{{ $item->unit->name ?? '-' }}</td>

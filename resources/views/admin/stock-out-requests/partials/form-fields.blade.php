@@ -89,6 +89,11 @@
             const itemRows = document.getElementById('itemRows');
             const warehouseHint = document.getElementById('warehouseHint');
             const modalElement = document.getElementById('stockOutItemPickerModal');
+            const initialRows = @json($detailRows ?? []);
+            const availableItems = @json($items ?? []);
+            const oldItemIds = @json(old('item_id', []));
+            const oldQuantities = @json(old('quantity', []));
+            const oldNotes = @json(old('item_note', []));
 
             const itemTable = $('#stockOutItemPickerTable').DataTable({
                 processing: true,
@@ -229,7 +234,7 @@
                 });
             }
 
-            function addItemRow(item) {
+            function addItemRow(item, detail = {}) {
                 const row = document.createElement('div');
 
                 row.className = 'detail-row';
@@ -266,6 +271,7 @@
                         name="quantity[]"
                         min="1"
                         max="${escapeHtml(item.available_stock)}"
+                        value="${escapeHtml(detail.quantity ?? '')}"
                         class="form-control"
                         placeholder="0"
                         required
@@ -280,6 +286,7 @@
                     <input
                         type="text"
                         name="item_note[]"
+                        value="${escapeHtml(detail.note ?? '')}"
                         class="form-control"
                         placeholder="Opsional"
                     >
@@ -314,112 +321,34 @@
                 return element.innerHTML;
             }
 
+            function submittedRows() {
+                if (oldItemIds.length) {
+                    return oldItemIds.map(function(itemId, index) {
+                        return {
+                            item_id: itemId,
+                            quantity: oldQuantities[index] ?? '',
+                            note: oldNotes[index] ?? '',
+                        };
+                    });
+                }
+
+                return initialRows;
+            }
+
+            submittedRows().forEach(function(detail) {
+                const item = availableItems.find(function(availableItem) {
+                    return String(availableItem.id) === String(detail.item_id);
+                }) ?? {
+                    id: detail.item_id,
+                    item_code: detail.item_code,
+                    name: detail.name,
+                    available_stock: detail.available_stock ?? detail.quantity,
+                };
+
+                addItemRow(item, detail);
+            });
+
             updateWarehouseState();
         });
     </script>
 @endpush
-{{-- @push('scripts')
-<script>
-    const warehouseSelect = document.getElementById('warehouseId');
-    const itemRows = document.getElementById('itemRows');
-    const addItemRow = document.getElementById('addItemRow');
-    const warehouseHint = document.getElementById('warehouseHint');
-    const itemsUrlTemplate = @json(route('admin.stock-out-requests.warehouse-items', ['warehouse' => '__WAREHOUSE__']));
-    const initialRows = @json($detailRows ?? []);
-    const oldItemIds = @json(old('item_id', []));
-    const oldQuantities = @json(old('quantity', []));
-    const oldNotes = @json(old('item_note', []));
-    let availableItems = @json($items);
-
-    function escapeHtml(value) {
-        const element = document.createElement('div');
-        element.textContent = value ?? '';
-        return element.innerHTML;
-    }
-
-    function options(selectedId = '') {
-        return '<option value="">Pilih Barang</option>' + availableItems.map(item => {
-            const selected = String(item.id) === String(selectedId) ? ' selected' : '';
-            const code = item.item_code ?? '-';
-            return `<option value="${item.id}"${selected}>${escapeHtml(code)} - ${escapeHtml(item.name)} (stok: ${item.available_stock})</option>`;
-        }).join('');
-    }
-
-    function addRow(detail = {}) {
-        const row = document.createElement('div');
-        row.className = 'detail-row';
-        row.innerHTML = `
-            <div class="row g-3 align-items-end">
-                <div class="col-md-5">
-                    <label class="form-label fw-semibold">Barang <span class="text-danger">*</span></label>
-                    <select name="item_id[]" class="form-select">${options(detail.item_id)}</select>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label fw-semibold">Qty <span class="text-danger">*</span></label>
-                    <input type="number" name="quantity[]" value="${escapeHtml(detail.quantity)}" min="1" class="form-control" placeholder="0">
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label fw-semibold">Catatan Item</label>
-                    <input type="text" name="item_note[]" value="${escapeHtml(detail.note)}" class="form-control" placeholder="Opsional">
-                </div>
-                <div class="col-md-1 d-grid">
-                    <button type="button" class="btn btn-light border remove-row"><i class="bx bx-trash"></i></button>
-                </div>
-            </div>`;
-        itemRows.appendChild(row);
-    }
-
-    function submittedRows() {
-        if (oldItemIds.length) {
-            return oldItemIds.map((itemId, index) => ({
-                item_id: itemId,
-                quantity: oldQuantities[index] ?? '',
-                note: oldNotes[index] ?? '',
-            }));
-        }
-        return initialRows;
-    }
-
-    async function loadWarehouseItems(keepRows = false) {
-        itemRows.innerHTML = '';
-        const warehouseId = warehouseSelect.value;
-        addItemRow.disabled = true;
-
-        if (!warehouseId) {
-            availableItems = [];
-            warehouseHint.textContent = 'Pilih gudang terlebih dahulu.';
-            return;
-        }
-
-        warehouseHint.textContent = 'Memuat barang...';
-        const response = await fetch(itemsUrlTemplate.replace('__WAREHOUSE__', warehouseId), {
-            headers: { 'Accept': 'application/json' },
-        });
-        availableItems = await response.json();
-
-        if (!availableItems.length) {
-            warehouseHint.textContent = 'Tidak ada barang dengan stok tersedia di gudang ini.';
-            return;
-        }
-
-        warehouseHint.textContent = '';
-        addItemRow.disabled = false;
-        const rows = keepRows ? submittedRows() : [];
-        (rows.length ? rows : [{}]).forEach(addRow);
-    }
-
-    addItemRow.addEventListener('click', () => addRow());
-    warehouseSelect.addEventListener('change', () => loadWarehouseItems(false));
-    document.addEventListener('click', event => {
-        const button = event.target.closest('.remove-row');
-        if (!button) return;
-        if (itemRows.querySelectorAll('.detail-row').length === 1) {
-            alert('Minimal harus ada satu baris barang.');
-            return;
-        }
-        button.closest('.detail-row').remove();
-    });
-
-    if (warehouseSelect.value) loadWarehouseItems(true);
-</script>
-@endpush --}}

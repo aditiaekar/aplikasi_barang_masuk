@@ -209,37 +209,49 @@
                     </div>
                 </div>
             </form>
+            <div class="mt-2">
+                <form id="printPdfForm" method="POST" action="{{ route('admin.stock.out.invoice') }}" target="_blank">
+                    @csrf
+                    <div id="selectedPdfIds"></div>
+                    <button type="submit" id="printPdfButton" class="btn btn-dark rounded-4" disabled>
+                        <i class="me-1"></i>
+                        Print
+                    </button>
+                </form>
+            </div>
         </div>
+    </div>
 
-        @if (session('success'))
-            <div class="alert alert-success m-3 rounded-4">
-                {{ session('success') }}
-            </div>
-        @endif
+    @if (session('success'))
+        <div class="alert alert-success m-3 rounded-4">
+            {{ session('success') }}
+        </div>
+    @endif
 
-        @if (session('error'))
-            <div class="alert alert-danger m-3 rounded-4">
-                {{ session('error') }}
-            </div>
-        @endif
+    @if (session('error'))
+        <div class="alert alert-danger m-3 rounded-4">
+            {{ session('error') }}
+        </div>
+    @endif
 
-        <div class="table-responsive">
-            <table id="datatable" class="table align-middle">
-                <thead>
-                    <tr>
-                        <th style="width: 20px;">No</th>
-                        <th>No. Transaksi</th>
-                        <th>Tanggal</th>
-                        <th>Gudang</th>
-                        <th>Total Item</th>
-                        <th>Total Qty</th>
-                        <th>Status</th>
-                        <th class="text-end" style="width: 120px;">Aksi</th>
-                    </tr>
-                </thead>
+    <div class="table-responsive">
+        <table id="datatable" class="table align-middle">
+            <thead>
+                <tr>
+                    <th style="width: 10px;">#</th>
+                    <th style="width: 20px;">No</th>
+                    <th>No. Transaksi</th>
+                    <th>Tanggal</th>
+                    <th>Gudang</th>
+                    <th>Total Item</th>
+                    <th>Total Qty</th>
+                    <th>Status</th>
+                    <th class="text-end" style="width: 120px;">Aksi</th>
+                </tr>
+            </thead>
 
-                <tbody>
-                    {{-- @forelse ($stockOutRequests as $requestItem)
+            <tbody>
+                {{-- @forelse ($stockOutRequests as $requestItem)
                 @php
                 $totalQty = $requestItem->items->sum($quantityColumn);
                 $status = $statusColumn ? $requestItem->{$statusColumn} : 'pending';
@@ -309,15 +321,17 @@
                     </td>
                 </tr>
                 @endforelse --}}
-                </tbody>
-            </table>
-        </div>
+            </tbody>
+        </table>
+    </div>
     </div>
 @endsection
 
 @push('scripts')
     <script>
         $(function() {
+            let selectedIds = new Set();
+
             const table = $('#datatable').DataTable({
                 processing: true,
                 serverSide: true,
@@ -338,6 +352,12 @@
                     $('#filterStatus').val(data.filterStatus || '');
                 },
 
+                drawCallback: function() {
+                    $('.stock-out-check').each(function() {
+                        this.checked = selectedIds.has(this.value);
+                    });
+                },
+
                 ajax: {
                     url: "{{ route('admin.stock-out-requests.data') }}",
                     data: function(d) {
@@ -347,6 +367,15 @@
                 },
 
                 columns: [{
+                        data: 'id',
+                        name: 'select',
+                        orderable: false,
+                        searchable: false,
+                        render: function(id) {
+                            return `<input type="checkbox" class="stock-out-check" value="${id}">`;
+                        }
+                    },
+                    {
                         data: 'DT_RowIndex',
                         name: 'DT_RowIndex',
                         orderable: false,
@@ -398,6 +427,27 @@
 
             $('#btnFilter').on('click', function() {
                 table.ajax.reload();
+            });
+
+            $('#datatable').on('change', '.stock-out-check', function() {
+                if (this.checked) {
+                    selectedIds.add(this.value);
+                } else {
+                    selectedIds.delete(this.value);
+                }
+                console.log(selectedIds);
+                $('#printPdfButton').prop('disabled',selectedIds.size === 0);
+            });
+
+            $('#printPdfForm').on('submit', function() {
+                const container = $('#selectedPdfIds');
+                container.empty();
+
+                selectedIds.forEach(function (id) {
+                    container.append(`<input type="hidden" name="ids[]" value="${id}">`);
+                });
+
+                return selectedIds.size > 0;
             });
         });
     </script>

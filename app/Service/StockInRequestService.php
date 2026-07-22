@@ -5,6 +5,7 @@ namespace App\Service;
 use App\Models\StockInRequest;
 use App\Models\ItemStock;
 use App\Models\StockMutation;
+use App\Models\StockLayer;
 use App\Repositories\ItemRepository;
 use App\Repositories\ItemStockRepository;
 use App\Repositories\StockInRepository;
@@ -54,6 +55,8 @@ class StockInRequestService
             'item_id.*' => ['required', 'exists:items,id'],
             'quantity' => ['required', 'array', 'min:1'],
             'quantity.*' => ['required', 'integer', 'min:1'],
+            'price' => ['required', 'array', 'min:1'],
+            'price.*' => ['required', 'numeric', 'min:1'],
             'item_note' => ['nullable', 'array'],
             'item_note.*' => ['nullable', 'string'],
         ], [
@@ -62,7 +65,9 @@ class StockInRequestService
             'item_id.*.required' => 'At least one item is required',
             'quantity.required' => 'At least one item is required',
             'quantity.min' => 'At least one item is required',
-            'quantity.*.required' => 'At least one item is required'
+            'quantity.*.required' => 'At least one item is required',
+            'price.min' => 'At least one item is required',
+            'price.*.required' => 'At least one item is required'
         ]);
 
         try {
@@ -88,6 +93,7 @@ class StockInRequestService
                     $stockInRequestItemPayload['item_id'] = $itemId;
                     $stockInRequestItemPayload['unit_id'] = $item->unit->id;
                     $stockInRequestItemPayload['quantity'] = $validated['quantity'][$index];
+                    $stockInRequestItemPayload['price'] = $validated['price'][$index];
                     $stockInRequestItemPayload['note'] = $validated['item_note'][$index] ?? null;
 
                     $this->stockInRequestRepo->storeItem($stockInRequestItemPayload);
@@ -114,6 +120,8 @@ class StockInRequestService
                 'item_id.*' => ['required', 'exists:items,id'],
                 'quantity' => ['required', 'array', 'min:1'],
                 'quantity.*' => ['required', 'integer', 'min:1'],
+                'price' => ['required', 'array', 'min:1'],
+                'price.*' => ['required', 'numeric', 'min:1'],
                 'item_note' => ['nullable', 'array'],
                 'item_note.*' => ['nullable', 'string'],
             ],
@@ -147,6 +155,8 @@ class StockInRequestService
                 $stockInRequestItemPayload['item_id'] = $itemId;
                 $stockInRequestItemPayload['unit_id'] = $item->unit->id;
                 $stockInRequestItemPayload['quantity'] = $validated['quantity'][$index];
+                $stockInRequestItemPayload['price'] = $validated['price'][$index];
+
                 $stockInRequestItemPayload['note'] = $validated['item_note'][$index] ?? null;
 
                 $this->stockInRequestRepo->storeItem($stockInRequestItemPayload);
@@ -218,8 +228,19 @@ class StockInRequestService
                     ];
                     $stockInItemPayload['unit_id'] = $requestItem->unit_id;
                     $stockInItemPayload['note'] = $requestItem->note ?? null;
+                    $stockInItemPayload['price'] = $requestItem->price;
+                    $stockInItem = $this->stockInRepo->storeItem($stockInItemPayload);
 
-                    $this->stockInRepo->storeItem($stockInItemPayload);
+                    // stock layer
+                    StockLayer::create([
+                        'item_id' => $requestItem->item_id,
+                        'warehouse_id' => $lockedRequest->warehouse_id,
+                        'stock_in_item_id' => $stockInItem->id,
+                        'quantity_in' => $quantity,
+                        'quantity_remaining' => $quantity,
+                        'price' => $requestItem->price,
+                        'received_at' => $stockIn->stock_in_date,
+                    ]);
 
                     // item stock
                     $itemStock = ItemStock::where('warehouse_id', $lockedRequest->warehouse_id)
@@ -276,7 +297,7 @@ class StockInRequestService
                 $requestUpdatePayload['approved_at'] = now();
                 $requestUpdatePayload['rejected_reason'] = null;
 
-                $this->stockInRequestRepo->updateRequest($lockedRequest,$requestUpdatePayload);
+                $this->stockInRequestRepo->updateRequest($lockedRequest, $requestUpdatePayload);
             });
         } catch (ValidationException $e) {
             throw $e;

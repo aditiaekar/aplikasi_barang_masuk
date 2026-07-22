@@ -80,7 +80,7 @@
                     @foreach ($detailRows as $detail)
                         <div class="detail-row">
                             <div class="row g-3 align-items-end">
-                                <div class="col-md-5">
+                                <div class="col-md-4">
                                     <label class="form-label fw-semibold">Barang <span
                                             class="text-danger">*</span></label>
                                     <select name="item_id[]" class="form-select">
@@ -100,7 +100,13 @@
                                         min="1" class="form-control" placeholder="0">
                                 </div>
 
-                                <div class="col-md-4">
+                                <div class="col-md-2">
+                                    <label class="form-label fw-semibold">Price <span class="text-danger">*</span></label>
+                                    <input type="number" name="price[]" value="{{ $detail['price'] }}"
+                                        min="1" class="form-control" placeholder="0">
+                                </div>
+
+                                <div class="col-md-3">
                                     <label class="form-label fw-semibold">Catatan Item</label>
                                     <input type="text" name="item_note[]" value="{{ $detail['note'] ?? '' }}"
                                         class="form-control" placeholder="Opsional">
@@ -263,7 +269,7 @@
 
                 row.innerHTML = `
                 <div class="row g-3 align-items-end">
-                    <div class="col-md-5">
+                    <div class="col-md-4">
                         <label class="form-label fw-semibold">
                             Barang <span class="text-danger">*</span>
                         </label>
@@ -282,7 +288,15 @@
                         <input type="number" name="quantity[]" min="1" class="form-control" placeholder="0" required>
                     </div>
 
-                    <div class="col-md-4">
+                    <div class="col-md-2">
+                        <label class="form-label fw-semibold">
+                            Price <span class="text-danger">*</span>
+                        </label>
+
+                        <input type="number" name="price[]" min="1" class="form-control" placeholder="0" required>
+                    </div>
+
+                    <div class="col-md-3">
                         <label class="form-label fw-semibold">
                             Catatan Item
                         </label>

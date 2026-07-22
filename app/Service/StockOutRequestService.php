@@ -13,6 +13,8 @@ use App\Models\ItemStock;
 use App\Repositories\ItemStockRepository;
 use App\Repositories\StockMutationRepository;
 use App\Repositories\StockOutRepository;
+use App\Models\StockOutItemLayer;
+use App\Models\StockLayer;
 
 class StockOutRequestService
 {
@@ -37,6 +39,12 @@ class StockOutRequestService
                 'note' => $validated['note'] ?? null,
                 'requested_by' => Auth::id(),
                 'status' => 'pending',
+                'recipient_name' => $validated['recipient_name'],
+                'recipient_postal_code' => $validated['recipient_postal_code'],
+                'recipient_address' => $validated['recipient_address'],
+                'recipient_phone' => $validated['recipient_phone'],
+                'ems_number' => $validated['ems_number'],
+                'sender_name' => $validated['sender_name'],
             ]);
 
             $this->storeItems($stockOutRequest, $validated);
@@ -55,6 +63,12 @@ class StockOutRequestService
                 'warehouse_id' => $validated['warehouse_id'],
                 'request_date' => $validated['request_date'],
                 'note' => $validated['note'] ?? null,
+                'recipient_name' => $validated['recipient_name'],
+                'recipient_postal_code' => $validated['recipient_postal_code'],
+                'recipient_address' => $validated['recipient_address'],
+                'recipient_phone' => $validated['recipient_phone'],
+                'ems_number' => $validated['ems_number'],
+                'sender_name' => $validated['sender_name'],
             ]);
 
             $this->stockOutRequestRepo->deleteItems($stockOutRequest);
@@ -84,6 +98,12 @@ class StockOutRequestService
             'quantity.*' => ['required', 'integer', 'min:1'],
             'item_note' => ['nullable', 'array'],
             'item_note.*' => ['nullable', 'string'],
+            'recipient_name' => ['required', 'string'],
+            'recipient_postal_code' => ['required', 'string'],
+            'recipient_phone' => ['required', 'string'],
+            'ems_number' => ['required', 'string'],
+            'recipient_address' => ['required', 'string'],
+            'sender_name' => ['required', 'string'],
         ]);
 
         if (count($validated['item_id']) !== count($validated['quantity'])) {
@@ -183,7 +203,53 @@ class StockOutRequestService
                 $stockOutItemPayload['unit_id'] = $requestItem->unit_id;
                 $stockOutItemPayload['note'] = $requestItem->note ?? null;
 
-                $this->stockOutRepo->storeItem($stockOutItemPayload);
+                $stockOutItem = $this->stockOutRepo->storeItem($stockOutItemPayload);
+                $remainingQty = $quantity;
+                $totalPrice = 0;
+
+                $layers = StockLayer::query()
+                    ->where('item_id', $requestItem->item_id)
+                    ->where('warehouse_id', $lockedRequest->warehouse_id)
+                    ->where('quantity_remaining', '>', 0)
+                    ->orderBy('received_at')
+                    ->orderBy('id')
+                    ->lockForUpdate()
+                    ->get();
+
+                foreach ($layers as $layer) {
+                    if ($remainingQty <= 0) {
+                        break;
+                    }
+
+                    $takenQty = min($remainingQty, $layer->quantity_remaining);
+                    $subtotal = $takenQty * $layer->price;
+
+                    StockOutItemLayer::create([
+                        'stock_out_item_id' => $stockOutItem->id,
+                        'stock_layer_id' => $layer->id,
+                        'stock_in_item_id' => $layer->stock_in_item_id,
+                        'quantity' => $takenQty,
+                        'price' => $layer->price,
+                        'subtotal' => $subtotal,
+                    ]);
+
+                    $layer->update([
+                        'quantity_remaining' => $layer->quantity_remaining - $takenQty,
+                    ]);
+
+                    $totalPrice += $subtotal;
+                    $remainingQty -= $takenQty;
+                }
+                if ($remainingQty > 0) {
+                    throw ValidationException::withMessages([
+                        'stock' => "Stok FIFO barang ID ({$requestItem->item_id}) tidak mencukupi.",
+                    ]);
+                }
+
+                $stockOutItem->update([
+                    'total_price' => $totalPrice,
+                    'unit_price' => $quantity > 0 ? $totalPrice / $quantity : 0,
+                ]);
 
                 // item stock
                 $itemStock = ItemStock::where('warehouse_id', $lockedRequest->warehouse_id)

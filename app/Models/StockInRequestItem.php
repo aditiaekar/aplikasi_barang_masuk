@@ -11,6 +11,7 @@ class StockInRequestItem extends Model
         'item_id',
         'unit_id',
         'quantity',
+        'price',
         'note',
     ];
 

@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\UnitController;
 use App\Http\Controllers\Admin\SupplierController;
 use App\Http\Controllers\Admin\WarehouseController;
+use App\Http\Controllers\PdfController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -137,4 +138,6 @@ Route::middleware(['auth', 'role:super_admin,admin_gudang'])
                 Route::put('/{type}/{id}', [MasterDataController::class, 'update'])->name('update');
                 Route::delete('/{type}/{id}', [MasterDataController::class, 'destroy'])->name('destroy');
             });
+
+        Route::post('/stock-out/pdf', [PdfController::class, 'stock_out_invoice'])->name('stock.out.invoice');
     });

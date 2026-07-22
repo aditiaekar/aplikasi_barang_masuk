@@ -45,6 +45,60 @@
             <div class="invalid-feedback">{{ $message }}</div>
         @enderror
     </div>
+    <div class="col-md-6">
+        <label class="form-label fw-semibold"> Nama Pengirim<span class="text-danger">*</span></label>
+        <input type="text" name="sender_name"
+            value="{{ old('sender_name', $stockOutRequest->sender_name ?? '') }}"
+            class="form-control @error('sender_name') is-invalid @enderror">
+        @error('sender_name')
+            <div class="invalid-feedback">{{ $message }}</div>
+        @enderror
+    </div>
+
+    <div class="col-md-6">
+        <label class="form-label fw-semibold"> Nama Penerima<span class="text-danger">*</span></label>
+        <input type="text" name="recipient_name"
+            value="{{ old('recipient_name', $stockOutRequest->recipient_name ?? '') }}"
+            class="form-control @error('recipient_name') is-invalid @enderror">
+        @error('recipient_name')
+            <div class="invalid-feedback">{{ $message }}</div>
+        @enderror
+    </div>
+    <div class="col-md-6">
+        <label class="form-label fw-semibold"> Kode Pos Tujuan<span class="text-danger">*</span></label>
+        <input type="text" name="recipient_postal_code"
+            value="{{ old('recipient_postal_code', $stockOutRequest->recipient_postal_code ?? '') }}"
+            class="form-control @error('recipient_postal_code') is-invalid @enderror">
+        @error('recipient_postal_code')
+            <div class="invalid-feedback">{{ $message }}</div>
+        @enderror
+    </div>
+    <div class="col-md-6">
+        <label class="form-label fw-semibold"> Nomor Telp. Tujuan<span class="text-danger">*</span></label>
+        <input type="text" name="recipient_phone"
+            value="{{ old('recipient_phone', $stockOutRequest->recipient_phone ?? '') }}"
+            class="form-control @error('recipient_phone') is-invalid @enderror">
+        @error('recipient_phone')
+            <div class="invalid-feedback">{{ $message }}</div>
+        @enderror
+    </div>
+    <div class="col-md-6">
+        <label class="form-label fw-semibold"> Nomor EMS<span class="text-danger">*</span></label>
+        <input type="text" name="ems_number"
+            value="{{ old('ems_number', $stockOutRequest->ems_number ?? '') }}"
+            class="form-control @error('ems_number') is-invalid @enderror">
+        @error('ems_number')
+            <div class="invalid-feedback">{{ $message }}</div>
+        @enderror
+    </div>
+    <div class="col-12">
+        <label class="form-label fw-semibold"> Alamat Tujuan<span class="text-danger">*</span></label>
+        <textarea name="recipient_address" rows="3" class="form-control @error('recipient_address') is-invalid @enderror"
+            placeholder="Masukkan Alamat Tujuan">{{ old('recipient_address', $stockOutRequest->recipient_address ?? '') }}</textarea>
+        @error('recipient_address')
+            <div class="invalid-feedback">{{ $message }}</div>
+        @enderror
+    </div>
 
     <div class="col-12">
         <div class="detail-box">

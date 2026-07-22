@@ -58,11 +58,6 @@
                     </div>
 
                     <div class="col-md-4">
-                        <small class="text-muted d-block">Supplier</small>
-                        <strong>{{ $stockOutRequest->supplier->name ?? '-' }}</strong>
-                    </div>
-
-                    <div class="col-md-4">
                         <small class="text-muted d-block">Gudang</small>
                         <strong>{{ $stockOutRequest->warehouse->name ?? '-' }}</strong>
                     </div>
@@ -72,9 +67,43 @@
                         <strong>{{ $stockOutRequest->requestedBy->name ?? '-' }}</strong>
                     </div>
 
+
+                    <div class="col-md-4">
+                        <small class="text-muted d-block">Pengirim</small>
+                        <strong>{{ $stockOutRequest->sender_name ?? '-' }}</strong>
+                    </div>
+
+
+                    <div class="col-md-4">
+                        <small class="text-muted d-block">Penerima</small>
+                        <strong>{{ $stockOutRequest->recipient_name ?? '-' }}</strong>
+                    </div>
+
+
+                    <div class="col-md-4">
+                        <small class="text-muted d-block">Kode Pos Tujuan</small>
+                        <strong>{{ $stockOutRequest->recipient_postal_code ?? '-' }}</strong>
+                    </div>
+
+
+                    <div class="col-md-4">
+                        <small class="text-muted d-block">Nomor Telp. Tujuan</small>
+                        <strong>{{ $stockOutRequest->recipient_phone ?? '-' }}</strong>
+                    </div>
+
+                    <div class="col-md-4">
+                    <small class="text-muted d-block">Nomor EMS</small>
+                        <strong>{{ $stockOutRequest->ems_number ?? '-' }}</strong>
+                    </div>
+
                     <div class="col-md-12">
                         <small class="text-muted d-block">Catatan</small>
                         <span>{{ $stockOutRequest->note ?? '-' }}</span>
+                    </div>
+
+                    <div class="col-md-12">
+                        <small class="text-muted d-block">Alamat Tujuan</small>
+                        <span>{{ $stockOutRequest->recipient_address ?? '-' }}</span>
                     </div>
 
                     @if ($stockOutRequest->status === 'rejected')

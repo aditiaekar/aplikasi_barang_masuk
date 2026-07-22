@@ -17,6 +17,7 @@
         return [
             'item_id' => $detail->item_id,
             'quantity' => $detail->{$quantityColumn},
+            'price' => $detail->price,
             'note' => $itemNoteColumn ? $detail->{$itemNoteColumn} : '',
         ];
     })->toArray();

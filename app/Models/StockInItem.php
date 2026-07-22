@@ -12,11 +12,13 @@ class StockInItem extends Model
         'item_id',
         'unit_id',
         'quantity',
+        'price',
         'note',
     ];
 
     protected $casts = [
         'quantity' => 'integer',
+        'price' => 'decimal:2'
     ];
 
     /**
@@ -42,4 +44,6 @@ class StockInItem extends Model
     {
         return $this->belongsTo(Unit::class);
     }
+
+
 }

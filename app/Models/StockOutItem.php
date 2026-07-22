@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 class StockOutItem extends Model
 {
     protected $fillable = [
@@ -11,11 +12,15 @@ class StockOutItem extends Model
         'item_id',
         'unit_id',
         'quantity',
+        'unit_price',
+        'total_price',
         'note',
     ];
 
     protected $casts = [
         'quantity' => 'integer',
+        'unit_price' => 'decimal:2',
+        'total_price' => 'decimal:2'
     ];
 
     /**
@@ -40,5 +45,9 @@ class StockOutItem extends Model
     public function unit(): BelongsTo
     {
         return $this->belongsTo(Unit::class);
+    }
+
+    public function stockOutItemLayers(): HasMany {
+        return $this->hasMany(StockOutItemLayer::class);
     }
 }

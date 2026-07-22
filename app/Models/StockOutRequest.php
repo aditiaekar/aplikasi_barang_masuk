@@ -17,6 +17,13 @@ class StockOutRequest extends Model
         'approved_by',
         'approved_at',
         'rejected_reason',
+        'recipient_name',
+        'recipient_postal_code',
+        'recipient_address',
+        'recipient_phone',
+        'ems_number',
+        'sender_name',
+
     ];
 
     public function warehouse()

@@ -26,12 +26,9 @@ class StockOutRequestService
         protected StockOutRepository $stockOutRepo
     ) {}
 
-    public function store(Request $request): StockOutRequest
+    public function store(array $validated)
     {
-        $validated = $this->validate($request);
-        $this->validateWarehouseStock($validated);
-
-        return DB::transaction(function () use ($validated) {
+        DB::transaction(function () use ($validated) {
             $stockOutRequest = $this->stockOutRequestRepo->store([
                 'request_number' => $this->stockOutRequestRepo->generateRequestNumber(),
                 'warehouse_id' => $validated['warehouse_id'],
@@ -48,17 +45,12 @@ class StockOutRequestService
             ]);
 
             $this->storeItems($stockOutRequest, $validated);
-
-            return $stockOutRequest;
         });
     }
 
-    public function update(StockOutRequest $stockOutRequest, Request $request): StockOutRequest
+    public function update(StockOutRequest $stockOutRequest, array $validated)
     {
-        $validated = $this->validate($request);
-        $this->validateWarehouseStock($validated);
-
-        return DB::transaction(function () use ($stockOutRequest, $validated) {
+        DB::transaction(function () use ($stockOutRequest, $validated) {
             $this->stockOutRequestRepo->updateRequest($stockOutRequest, [
                 'warehouse_id' => $validated['warehouse_id'],
                 'request_date' => $validated['request_date'],
@@ -73,8 +65,6 @@ class StockOutRequestService
 
             $this->stockOutRequestRepo->deleteItems($stockOutRequest);
             $this->storeItems($stockOutRequest, $validated);
-
-            return $stockOutRequest;
         });
     }
 
@@ -84,54 +74,6 @@ class StockOutRequestService
             $this->stockOutRequestRepo->deleteItems($stockOutRequest);
             $this->stockOutRequestRepo->delete($stockOutRequest);
         });
-    }
-
-    private function validate(Request $request): array
-    {
-        $validated = $request->validate([
-            'warehouse_id' => ['required', 'exists:warehouses,id'],
-            'request_date' => ['required', 'date'],
-            'note' => ['nullable', 'string'],
-            'item_id' => ['required', 'array', 'min:1'],
-            'item_id.*' => ['required', 'distinct', 'exists:items,id'],
-            'quantity' => ['required', 'array', 'min:1'],
-            'quantity.*' => ['required', 'integer', 'min:1'],
-            'item_note' => ['nullable', 'array'],
-            'item_note.*' => ['nullable', 'string'],
-            'recipient_name' => ['required', 'string'],
-            'recipient_postal_code' => ['required', 'string'],
-            'recipient_phone' => ['required', 'string'],
-            'ems_number' => ['required', 'string'],
-            'recipient_address' => ['required', 'string'],
-            'sender_name' => ['required', 'string'],
-        ]);
-
-        if (count($validated['item_id']) !== count($validated['quantity'])) {
-            throw ValidationException::withMessages([
-                'quantity' => 'Jumlah data barang dan quantity tidak sesuai.',
-            ]);
-        }
-
-        return $validated;
-    }
-
-    private function validateWarehouseStock(array $validated): void
-    {
-        $stocks = DB::table('item_stocks')
-            ->where('warehouse_id', $validated['warehouse_id'])
-            ->whereIn('item_id', $validated['item_id'])
-            ->pluck('quantity', 'item_id');
-
-        foreach ($validated['item_id'] as $index => $itemId) {
-            $available = (int) ($stocks[$itemId] ?? 0);
-            $requested = (int) $validated['quantity'][$index];
-
-            if ($available < $requested) {
-                throw ValidationException::withMessages([
-                    "quantity.$index" => "Stok barang di gudang tidak mencukupi (tersedia: {$available}).",
-                ]);
-            }
-        }
     }
 
     private function storeItems(StockOutRequest $stockOutRequest, array $validated): void
@@ -184,6 +126,12 @@ class StockOutRequestService
             $stockOutPayload['stock_out_request_id'] = $lockedRequest->id;
             $stockOutPayload['stock_out_number'] = $this->stockOutRepo->generateStockOutNumber();
             $stockOutPayload['warehouse_id'] = $lockedRequest->warehouse_id;
+            $stockOutPayload['recipient_name'] = $lockedRequest->recipient_name;
+            $stockOutPayload['recipient_postal_code'] = $lockedRequest->recipient_postal_code;
+            $stockOutPayload['recipient_address'] = $lockedRequest->recipient_address;
+            $stockOutPayload['recipient_phone'] = $lockedRequest->recipient_phone;
+            $stockOutPayload['ems_number'] = $lockedRequest->ems_number;
+            $stockOutPayload['sender_name'] = $lockedRequest->sender_name;
             $stockOutPayload['received_by'] = Auth::id();
             $stockOutPayload['approved_by'] = Auth::id();
             $stockOutPayload['created_by'] = Auth::id();

@@ -16,7 +16,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Yajra\DataTables\Facades\DataTables;
-
+use Illuminate\Validation\Rule;
 class ItemController extends Controller
 {
     protected $itemService;
@@ -218,11 +218,17 @@ class ItemController extends Controller
 
     public function store(Request $request)
     {
-        $item = $this->itemService->store($request);
-
-        return redirect()
-            ->route('admin.items.index')
-            ->with('success', 'Data barang berhasil ditambahkan.');
+        $validated = $this->rules($request);
+        try {
+            $item = $this->itemService->store($validated);
+            return redirect()
+                ->route('admin.items.index')
+                ->with('success', 'Data barang berhasil ditambahkan.');
+        } catch (\Exception $e) {
+            return redirect()
+                ->route('admin.items.index')
+                ->with('error', 'Data barang gagal ditambahkan.');
+        }
     }
 
     public function edit(Item $item)
@@ -248,20 +254,33 @@ class ItemController extends Controller
 
     public function update(Request $request, Item $item)
     {
-        $item = $this->itemService->update($item,$request);
+        $validated = $this->rules($request,$item->id);
+        try {
+            $item = $this->itemService->update($item, $validated);
 
-        return redirect()
-            ->route('admin.items.index')
-            ->with('success', 'Data barang berhasil diperbarui.');
+            return redirect()
+                ->route('admin.items.index')
+                ->with('success', 'Data barang berhasil diperbarui.');
+        } catch (\Exception $e) {
+            return redirect()
+                ->route('admin.items.index')
+                ->with('error', 'Data barang gagal diedit.');
+        }
     }
 
     public function destroy(Item $item)
     {
-        $item = $this->itemService->destroy($item);
+        try {
+            $item = $this->itemService->destroy($item);
 
-        return redirect()
-            ->route('admin.items.index')
-            ->with('success', 'Data barang berhasil dihapus.');
+            return redirect()
+                ->route('admin.items.index')
+                ->with('success', 'Data barang berhasil dihapus.');
+        } catch (\Exception $e) {
+            return redirect()
+                ->route('admin.items.index')
+                ->with('error', 'Data barang gagal dihapus.');
+        }
     }
 
     private function itemPayload(array $validated): array
@@ -275,5 +294,86 @@ class ItemController extends Controller
         }
 
         return $payload;
+    }
+
+    private function rules(Request $request,?int $ignoreId = null): array
+    {
+        return $request->validate([
+            'category_id' => ['required','exists:categories,id'],
+            'unit_id' => ['required', 'exists:units,id'],
+            'item_code' => ['required','string','max:100',Rule::unique('items','item_code')->ignore($ignoreId)],
+            'barcode' => ['nullable','string','max:100',Rule::unique('items','barcode')->ignore($ignoreId)],
+            'name' => ['required','string','max:255'],
+            'minimum_stock' => ['required', 'integer', 'min:0'],
+            'price' => ['required', 'numeric', 'min:0'],
+            'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+            'description' => ['nullable', 'string'],
+            'is_active' => ['required', 'boolean'],
+        ]);
+        // $rules = [];
+
+        // if ($this->hasItemColumn('category_id')) {
+        //     $rules['category_id'] = ['nullable', 'exists:categories,id'];
+        // }
+
+        // if ($this->hasItemColumn('unit_id')) {
+        //     $rules['unit_id'] = ['nullable', 'exists:units,id'];
+        // }
+
+        // if ($this->hasItemColumn('item_code')) {
+        //     $uniqueCode = Rule::unique('items', 'item_code');
+
+        //     if ($ignoreId) {
+        //         $uniqueCode->ignore($ignoreId);
+        //     }
+
+        //     $rules['item_code'] = ['required', 'string', 'max:100', $uniqueCode];
+        // }
+
+        // if ($this->hasItemColumn('barcode')) {
+        //     $uniqueBarcode = Rule::unique('items', 'barcode');
+
+        //     if ($ignoreId) {
+        //         $uniqueBarcode->ignore($ignoreId);
+        //     }
+
+        //     $rules['barcode'] = ['nullable', 'string', 'max:100', $uniqueBarcode];
+        // }
+
+        // if ($this->hasItemColumn('name')) {
+        //     $rules['name'] = ['required', 'string', 'max:255'];
+        // }
+
+        // if ($this->hasItemColumn('minimum_stock')) {
+        //     $rules['minimum_stock'] = ['required', 'integer', 'min:0'];
+        // }
+
+        // if ($this->hasItemColumn('price')) {
+        //     $rules['price'] = ['required', 'numeric', 'min:0'];
+        // }
+
+        // if ($this->hasItemColumn('image')) {
+        //     $rules['image'] = ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'];
+        // }
+
+        // if ($this->hasItemColumn('description')) {
+        //     $rules['description'] = ['nullable', 'string'];
+        // }
+
+        // if ($this->hasItemColumn('is_active')) {
+        //     $rules['is_active'] = ['required', 'boolean'];
+        // }
+
+        // if ($this->hasItemColumn('image')) {
+        //     $rules['image'] = [
+        //         'nullable',
+        //         'image',
+        //         'mimes:jpg,jpeg,pngpeg,webp',
+        //         'max:5024',
+        //     ];
+        // }
+
+
+        // return $rules;
     }
 }

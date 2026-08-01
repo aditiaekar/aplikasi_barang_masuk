@@ -101,6 +101,7 @@
                             <th>Barang</th>
                             <th>Satuan</th>
                             <th class="text-end">Jumlah</th>
+                            <th class="text-end">Harga</th>
                             <th>Catatan</th>
                         </tr>
                     </thead>
@@ -116,6 +117,7 @@
                             </td>
                             <td>{{ $item->unit->name ?? '-' }}</td>
                             <td class="text-end">{{ number_format($item->quantity, 0, ',', '.') }}</td>
+                            <td class="text-end">Rp. {{ $item->price ?? 0 }}</td>
                             <td>{{ $item->note ?? '-' }}</td>
                         </tr>
                         @empty

@@ -92,7 +92,7 @@ class StockInRequestController extends Controller
                 return $row->items->count();
             })
             ->addColumn('total_qty', function ($row) {
-                return $row->items->sum($row->total_qty ?? 0);
+                return $row->total_qty;
             })
             ->addColumn('status', function ($row) {
                 return '<span class="badge-status badge-' . e($row->status) . '">' . e(ucfirst($row->status)) . '</span>';
@@ -521,13 +521,48 @@ class StockInRequestController extends Controller
         ));
     }
 
+    private function validateRequest(Request $request) :array
+    {
+        $itemCount = count((array) $request->input('item_id'));
+        return $request->validate([
+            'supplier_id' => ['required', 'exists:suppliers,id'],
+            'warehouse_id' => ['required', 'exists:warehouses,id'],
+            'request_date' => ['required', 'date'],
+            'note' => ['nullable', 'string'],
+            'item_id' => ['required', 'array', 'size:' . $itemCount],
+            'item_id.*' => ['required', 'exists:items,id', 'distinct'],
+            'quantity' => ['required', 'array', 'size:' . $itemCount],
+            'quantity.*' => ['required', 'integer', 'min:1'],
+            'price' => ['required', 'array', 'size:' . $itemCount],
+            'price.*' => ['required', 'numeric', 'min:1'],
+            'item_note' => ['nullable', 'array', 'size:' . $itemCount],
+            'item_note.*' => ['nullable', 'string'],
+        ], [
+            'item_id.required' => 'Paling tidak satu item dibutuhkan',
+            'item_id.min' => 'Paling tidak satu item dibutuhkan',
+            'item_id.*.required' => 'Paling tidak satu item dibutuhkan',
+            'item_id.*.distinct' => 'Tidak bisa diisi dengan Item yang Sama',
+            'quantity.required' => 'Paling tidak satu item dibutuhkan',
+            'quantity.min' => 'Paling tidak satu item dibutuhkan',
+            'quantity.*.required' => 'Paling tidak satu item dibutuhkan',
+            'price.min' => 'Paling tidak satu item dibutuhkan',
+            'price.*.required' => 'Paling tidak satu item dibutuhkan'
+        ]);
+    }
+
     public function store(Request $request)
     {
-        $stockInRequest = $this->stockInRequestService->store($request);
-
-        return redirect()
-            ->route('admin.stock-in-requests.index')
-            ->with('success', 'Transaksi barang masuk berhasil dibuat.');
+        $validated = $this->validateRequest($request);
+        try {
+            $stockInRequest = $this->stockInRequestService->store($validated);
+            return redirect()
+                ->route('admin.stock-in-requests.index')
+                ->with('success', 'Transaksi barang masuk berhasil dibuat.');
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Gagal menyimpan data karena masalah sistem. Silakan coba lagi.');
+        }
     }
 
     public function show(StockInRequest $stockInRequest)
@@ -552,6 +587,11 @@ class StockInRequestController extends Controller
 
     public function edit(StockInRequest $stockInRequest)
     {
+        // cek status
+        if ($stockInRequest->status == 'approved' || $stockInRequest->status == 'rejected') {
+            return redirect()->route('admin.stock-in-requests.index')->with('error', 'Request sudah di Approve / Direject');
+        }
+
         $stockInRequest->load(['items.item']);
 
         $suppliers = $this->supplierRepo->getAll();
@@ -579,40 +619,82 @@ class StockInRequestController extends Controller
 
     public function update(Request $request, StockInRequest $stockInRequest)
     {
-        $stockInRequest = $this->stockInRequestService->update($stockInRequest, $request);
+        // cek status
+        if ($stockInRequest->status == 'approved' || $stockInRequest->status == 'rejected') {
+            return redirect()->route('admin.stock-in-requests.index')->with('error', 'Request sudah di Approve / Direject');
+        }
+        $validated = $this->validateRequest($request);
+        try {
+            $stockInRequest = $this->stockInRequestService->update($stockInRequest, $validated);
 
-        return redirect()
-            ->route('admin.stock-in-requests.index')
-            ->with('success', 'Transaksi barang masuk berhasil diperbarui.');
+            return redirect()
+                ->route('admin.stock-in-requests.index')
+                ->with('success', 'Transaksi barang masuk berhasil diperbarui.');
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Gagal mengedit data karena masalah sistem. Silakan coba lagi.');
+        }
     }
 
     public function approve(StockInRequest $stockInRequest)
     {
-        $updated = $this->stockInRequestService->approve($stockInRequest);
+        // cek status
+        if ($stockInRequest->status == 'approved' || $stockInRequest->status == 'rejected') {
+            return redirect()->route('admin.stock-in-requests.index')->with('error', 'Request sudah di Approve / Direject');
+        }
 
-        return redirect()
-            ->route('admin.stock-in-requests.index')
-            ->with('success', 'Transaksi barang masuk berhasil disetujui dan stok berhasil diperbarui.');
+        try {
+            $updated = $this->stockInRequestService->approve($stockInRequest);
+            return redirect()
+                ->route('admin.stock-in-requests.index')
+                ->with('success', 'Request barang masuk berhasil disetujui dan stok berhasil diperbarui.');
+        } catch (\Exception $e) {
+            return redirect()
+                ->route('admin.stock-in-requests.index')
+                ->with('error', 'Request barang masuk gagal disetujui.');
+        }
     }
 
     public function reject(Request $request, StockInRequest $stockInRequest)
     {
-        $validated = $request->validate([
-            'rejected_reason' => ['nullable', 'string', 'max:500'],
-        ]);
-        $updated = $this->stockInRequestService->reject($stockInRequest, $validated);
+        // cek status
+        if ($stockInRequest->status == 'approved' || $stockInRequest->status == 'rejected') {
+            return redirect()->route('admin.stock-in-requests.index')->with('error', 'Request sudah di Approve / Direject');
+        }
 
-        return redirect()
-            ->route('admin.stock-in-requests.index')
-            ->with('success', 'Transaksi barang masuk berhasil ditolak.');
+        try {
+            $validated = $request->validate([
+                'rejected_reason' => ['nullable', 'string', 'max:500'],
+            ]);
+            $updated = $this->stockInRequestService->reject($stockInRequest, $validated);
+            return redirect()
+                ->route('admin.stock-in-requests.index')
+                ->with('success', 'Transaksi barang masuk berhasil ditolak.');
+        } catch (\Exception $e) {
+            return redirect()
+                ->route('admin.stock-in-requests.index')
+                ->with('error', 'Transaksi barang masuk gagal ditolak.');
+        }
     }
 
     public function destroy(StockInRequest $stockInRequest)
     {
-        $deleted = $this->stockInRequestService->destroy($stockInRequest);
+        // cek status
+        if ($stockInRequest->status == 'approved' || $stockInRequest->status == 'rejected') {
+            return redirect()->route('admin.stock-in-requests.index')->with('error', 'Request sudah di Approve / Direject');
+        }
 
-        return redirect()
-            ->route('admin.stock-in-requests.index')
-            ->with('success', 'Transaksi barang masuk berhasil dihapus.');
+        try {
+            $deleted = $this->stockInRequestService->destroy($stockInRequest);
+
+            return redirect()
+                ->route('admin.stock-in-requests.index')
+                ->with('success', 'Transaksi barang masuk berhasil dihapus.');
+        } catch (\Exception $e) {
+            return redirect()
+                ->route('admin.stock-in-requests.index')
+                ->with('error', 'Transaksi barang masuk gagal dihapus.');
+        }
     }
 }

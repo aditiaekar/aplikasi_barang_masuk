@@ -430,20 +430,33 @@
             });
 
             $('#datatable').on('change', '.stock-out-check', function() {
+                let tr = $(this).closest('tr');
+                if (tr.hasClass('child')) {
+                    tr = tr.prev('.parent');
+                }
+                let rowData = table.row(tr).data();
+                let statusHtml = rowData.status;
+                let statusText = $(statusHtml).text();
+
+                if (statusText !== 'Approved') {
+                    alert('Hanya bisa memilih request dengan status Approved');
+                    this.checked = !this.checked;
+                    return
+                }
+
                 if (this.checked) {
                     selectedIds.add(this.value);
                 } else {
                     selectedIds.delete(this.value);
                 }
-                console.log(selectedIds);
-                $('#printPdfButton').prop('disabled',selectedIds.size === 0);
+                $('#printPdfButton').prop('disabled', selectedIds.size === 0);
             });
 
             $('#printPdfForm').on('submit', function() {
                 const container = $('#selectedPdfIds');
                 container.empty();
 
-                selectedIds.forEach(function (id) {
+                selectedIds.forEach(function(id) {
                     container.append(`<input type="hidden" name="ids[]" value="${id}">`);
                 });
 

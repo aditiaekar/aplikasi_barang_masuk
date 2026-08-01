@@ -361,6 +361,14 @@
                     $('#filterStatus').val(data.filterStatus || '');
                 },
 
+                drawCallback: function(settings) {
+                    let api = this.api();
+                    let info = api.page.info();
+                    if(info.page > 0 && info.page >= info.pages) {
+                        api.page('previous').draw('page');
+                    }
+                },
+
                 ajax: {
                     url: "{{ route('admin.stock-in-requests.data') }}",
                     data: function(d) {

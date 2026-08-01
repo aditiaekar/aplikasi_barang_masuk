@@ -15,6 +15,7 @@ class StockInRequestRepository
         $lastNumber = StockInRequest::query()
             ->where('request_number', 'like', $prefix . '%')
             ->orderByDesc('id')
+            ->lockForUpdate()
             ->value('request_number');
 
         $sequence = 1;

@@ -12,6 +12,7 @@ use Illuminate\Validation\ValidationException;
 use Illuminate\Http\Request;
 use Yajra\DataTables\Facades\DataTables;
 use App\Models\Item;
+use Illuminate\Support\Facades\DB;
 
 class StockOutRequestController extends Controller
 {
@@ -44,7 +45,7 @@ class StockOutRequestController extends Controller
                     break;
                 }
             }
-            $query->where(function ($q) use ($keyword,$searchDate) {
+            $query->where(function ($q) use ($keyword, $searchDate) {
                 $q->where('request_number', 'like', "%{$keyword}%")
                     ->orWhereHas('warehouse', function ($warehouse) use ($keyword) {
                         $warehouse->where('name', 'like', "%{$keyword}%");
@@ -68,7 +69,7 @@ class StockOutRequestController extends Controller
                 return $row->items->count();
             })
             ->addColumn('total_qty', function ($row) {
-                return $row->items->sum($row->total_qty ?? 0);
+                return $row->total_qty;
             })
             ->addColumn('status', function ($row) {
                 return '<span class="badge-status badge-' . e($row->status) . '">' . e(ucfirst($row->status)) . '</span>';
@@ -200,6 +201,48 @@ class StockOutRequestController extends Controller
         return view('admin.stock-out-requests.index');
     }
 
+    private function validate(Request $request): array
+    {
+        $itemCount = count((array) $request->input('item_id'));
+
+        return $request->validate([
+            'warehouse_id' => ['required', 'exists:warehouses,id'],
+            'request_date' => ['required', 'date'],
+            'note' => ['nullable', 'string'],
+            'item_id' => ['required', 'array', 'size:' . $itemCount],
+            'item_id.*' => ['required', 'distinct', 'exists:items,id'],
+            'quantity' => ['required', 'array', 'size:' . $itemCount],
+            'quantity.*' => ['required', 'integer', 'min:1'],
+            'item_note' => ['nullable', 'array', 'size:' . $itemCount],
+            'item_note.*' => ['nullable', 'string'],
+            'recipient_name' => ['required', 'string'],
+            'recipient_postal_code' => ['required', 'string'],
+            'recipient_phone' => ['required', 'string'],
+            'ems_number' => ['required', 'string'],
+            'recipient_address' => ['required', 'string'],
+            'sender_name' => ['required', 'string'],
+        ]);
+    }
+
+    private function validateWarehouseStock(array $validated): void
+    {
+        $stocks = DB::table('item_stocks')
+            ->where('warehouse_id', $validated['warehouse_id'])
+            ->whereIn('item_id', $validated['item_id'])
+            ->pluck('quantity', 'item_id');
+
+        foreach ($validated['item_id'] as $index => $itemId) {
+            $available = (int) ($stocks[$itemId] ?? 0);
+            $requested = (int) $validated['quantity'][$index];
+
+            if ($available < $requested) {
+                throw ValidationException::withMessages([
+                    "quantity.$index" => "Stok barang di gudang tidak mencukupi (tersedia: {$available}).",
+                ]);
+            }
+        }
+    }
+
     public function create()
     {
         $warehouseId = old('warehouse_id');
@@ -214,10 +257,18 @@ class StockOutRequestController extends Controller
 
     public function store(Request $request)
     {
-        $this->stockOutRequestService->store($request);
+        $validated = $this->validate($request);
+        $this->validateWarehouseStock($validated);
+        try {
+            $this->stockOutRequestService->store($validated);
 
-        return redirect()->route('admin.stock-out-requests.index')
-            ->with('success', 'Transaksi barang keluar berhasil dibuat.');
+            return redirect()->route('admin.stock-out-requests.index')
+                ->with('success', 'Transaksi barang keluar berhasil dibuat.');
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Gagal menyimpan data karena masalah sistem. Silakan coba lagi.');
+        }
     }
 
     public function show(StockOutRequest $stockOutRequest)
@@ -229,6 +280,11 @@ class StockOutRequestController extends Controller
 
     public function edit(StockOutRequest $stockOutRequest)
     {
+        // cek status
+        if ($stockOutRequest->status == 'approved' || $stockOutRequest->status == 'rejected') {
+            return redirect()->route('admin.stock-out-requests.index')->with('error', 'Request sudah di Approve / Direject');
+        }
+
         $stockOutRequest->load(['items.item']);
         $warehouseId = (int) old('warehouse_id', $stockOutRequest->warehouse_id);
 
@@ -241,18 +297,43 @@ class StockOutRequestController extends Controller
 
     public function update(Request $request, StockOutRequest $stockOutRequest)
     {
-        $this->stockOutRequestService->update($stockOutRequest, $request);
+        // cek status
+        if ($stockOutRequest->status == 'approved' || $stockOutRequest->status == 'rejected') {
+            return redirect()->route('admin.stock-out-requests.index')->with('error', 'Request sudah di Approve / Direject');
+        }
 
-        return redirect()->route('admin.stock-out-requests.index')
-            ->with('success', 'Transaksi barang keluar berhasil diperbarui.');
+        $validated = $this->validate($request);
+        $this->validateWarehouseStock($validated);
+        try {
+
+            $this->stockOutRequestService->update($stockOutRequest, $validated);
+
+            return redirect()->route('admin.stock-out-requests.index')
+                ->with('success', 'Transaksi barang keluar berhasil diperbarui.');
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Gagal mengedit data karena masalah sistem. Silakan coba lagi.');
+        }
     }
 
     public function destroy(StockOutRequest $stockOutRequest)
     {
-        $this->stockOutRequestService->destroy($stockOutRequest);
+        // cek status
+        if ($stockOutRequest->status == 'approved' || $stockOutRequest->status == 'rejected') {
+            return redirect()->route('admin.stock-out-requests.index')->with('error', 'Request sudah di Approve / Direject');
+        }
+        try {
+            $this->stockOutRequestService->destroy($stockOutRequest);
 
-        return redirect()->route('admin.stock-out-requests.index')
-            ->with('success', 'Transaksi barang keluar berhasil dihapus.');
+            return redirect()->route('admin.stock-out-requests.index')
+                ->with('success', 'Transaksi barang keluar berhasil dihapus.');
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Gagal menghapus data karena masalah sistem. Silakan coba lagi.');
+        }
+
     }
 
     public function warehouseItems(int $warehouse)
@@ -262,6 +343,11 @@ class StockOutRequestController extends Controller
 
     public function approve(StockOutRequest $stockOutRequest)
     {
+        // cek status
+        if ($stockOutRequest->status == 'approved' || $stockOutRequest->status == 'rejected') {
+            return redirect()->route('admin.stock-out-requests.index')->with('error', 'Request sudah di Approve / Direject');
+        }
+
         try {
             $updated = $this->stockOutRequestService->approve($stockOutRequest);
 
@@ -280,6 +366,11 @@ class StockOutRequestController extends Controller
     }
     public function reject(StockOutRequest $stockOutRequest, Request $request)
     {
+        // cek status
+        if ($stockOutRequest->status == 'approved' || $stockOutRequest->status == 'rejected') {
+            return redirect()->route('admin.stock-out-requests.index')->with('error', 'Request sudah di Approve / Direject');
+        }
+
         $validated = $request->validate([
             'rejected_reason' => ['nullable', 'string', 'max:500'],
         ]);

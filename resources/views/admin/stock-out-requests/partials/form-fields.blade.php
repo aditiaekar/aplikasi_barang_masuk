@@ -139,6 +139,7 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const warehouseSelect = document.getElementById('warehouseId');
+            let prevWarehouseVal = warehouseSelect.value;
             const pickerButton = document.getElementById('openStockOutItemPicker');
             const itemRows = document.getElementById('itemRows');
             const warehouseHint = document.getElementById('warehouseHint');
@@ -220,7 +221,7 @@
 
             function updateWarehouseState() {
                 const warehouseSelected = Boolean(warehouseSelect.value);
-
+                prevWarehouseVal = warehouseSelect.value;
                 pickerButton.disabled = !warehouseSelected;
                 warehouseHint.textContent = warehouseSelected ?
                     'Pilih barang yang tersedia di gudang ini.' :
@@ -234,6 +235,9 @@
                     );
 
                     if (!confirmed) {
+                        if(warehouseSelect.value !== null) {
+                            warehouseSelect.value = prevWarehouseVal;
+                        }
                         return;
                     }
                 }

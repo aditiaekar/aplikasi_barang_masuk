@@ -8,6 +8,12 @@
 
 @section('content')
     <div class="form-card">
+        @if (session('error'))
+            <div class="alert alert-danger m-3 rounded-4">
+                {{ session('error') }}
+            </div>
+        @endif
+
         <div class="form-card-header">
             <h5>Form Barang Masuk</h5>
             <p>Lengkapi data transaksi barang masuk.</p>

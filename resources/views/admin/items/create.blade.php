@@ -14,7 +14,7 @@
     </div>
 
     <div class="form-card-body">
-        <form action="{{ route('admin.items.store') }}" method="POST" enctype="multipart/form-data">
+        <form id="formItems" action="{{ route('admin.items.store') }}" method="POST" enctype="multipart/form-data">
             @csrf
 
             @include('admin.items.partials.form-fields', [

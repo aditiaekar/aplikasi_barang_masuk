@@ -34,24 +34,24 @@
 
 <body>
     @foreach ($requests as $request)
-        @php
+    @php
             $totalPrice = 0;
-            $stockOutItems = $request->stockOut?->items ?? collect();
+            $stockOutItems = $request->items ?? collect();
             $rowNumber = 1;
         @endphp
         <table>
             <thead>
                 <tr>
-                    <td colspan="5" style="border-bottom:none">{{ $request->recipient_name }}</td>
+                    <td colspan="5" style="border-bottom:none">{{ $request->recipient_name ?? '-' }}</td>
                 </tr>
                 <tr>
-                    <td colspan="5" style="border-top:none;border-bottom:none">{{ $request->recipient_postal_code }}</td>
+                    <td colspan="5" style="border-top:none;border-bottom:none">{{ $request->recipient_postal_code ?? '-' }}</td>
                 </tr>
                 <tr>
-                    <td colspan="5" style="border-top:none;border-bottom:none">{{ $request->recipient_address }}</td>
+                    <td colspan="5" style="border-top:none;border-bottom:none">{{ $request->recipient_address ?? '-' }}</td>
                 </tr>
                 <tr>
-                    <td colspan="5" style="border-top:none;border-bottom:none">{{ $request->recipient_phone }}</td>
+                    <td colspan="5" style="border-top:none;border-bottom:none">{{ $request->recipient_phone ?? '-' }}</td>
                 </tr>
                 <tr>
                     <td>EMS {{ $request->ems_number }}</td>

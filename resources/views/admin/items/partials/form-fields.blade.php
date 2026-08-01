@@ -19,7 +19,7 @@
 
     <div class="col-md-6">
         <label class="form-label fw-semibold">Kategori</label>
-        <select name="category_id" class="form-select @error('category_id') is-invalid @enderror">
+        <select id="category_id" name="category_id" class="form-select @error('category_id') is-invalid @enderror">
             <option value="">Pilih Kategori</option>
             @foreach ($categories as $category)
                 <option value="{{ $category->id }}"
@@ -35,7 +35,7 @@
 
     <div class="col-md-6">
         <label class="form-label fw-semibold">Satuan</label>
-        <select name="unit_id" class="form-select @error('unit_id') is-invalid @enderror">
+        <select id="unit_id" name="unit_id" class="form-select @error('unit_id') is-invalid @enderror">
             <option value="">Pilih Satuan</option>
             @foreach ($units as $unit)
                 <option value="{{ $unit->id }}"
@@ -112,23 +112,26 @@
             <div class="invalid-feedback">{{ $message }}</div>
         @enderror
     </div>
-
-    <div class="col-12">
-        <div class="stock-box">
-            <h6 class="fw-bold mb-1">Stok Awal per Gudang</h6>
-            <p class="text-muted small mb-3">
-                Isi stok awal jika barang sudah memiliki stok. Jika belum ada, biarkan 0.
-            </p>
-            <div class="row g-3">
-                @foreach ($warehouses as $warehouse)
-                    <div class="col-md-4">
-                        <label class="form-label fw-semibold">{{ $warehouse->name }}</label>
-                        <input type="number" name="stocks[{{ $warehouse->id }}]"
-                            value="{{ old('stocks.' . $warehouse->id, $stocks[$warehouse->id] ?? 0) }}" min="0"
-                            class="form-control" placeholder="0">
-                    </div>
-                @endforeach
-            </div>
-        </div>
-    </div>
 </div>
+
+@push('scripts')
+    <script>
+        $(document).ready(function() {
+            $('#formItems').on('submit',function(e) {
+                const categoryId = $('#category_id').val();
+                const unitId = $('#unit_id').val();
+                console.log('category ' + categoryId + '- unit ' + unitId);
+                if(!categoryId | categoryId === "") {
+                    e.preventDefault();
+                    alert('Kategori Belum Dipilih');
+                    return false;
+                }
+                if(!unitId | unitId === "") {
+                    e.preventDefault();
+                    alert('Unit Belum Dipilih');
+                    return false;
+                }
+            });
+        });
+    </script>
+@endpush
